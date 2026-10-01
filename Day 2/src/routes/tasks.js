@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-
+const validateTitle = require('../middlewares/validateTitle');
 const tasksData = require('../data/tasks')
 
 
@@ -20,14 +20,7 @@ router.get('/:id',(req,res) => {
     res.status(200).json(task)
 })
 
-router.post('/', (req,res) => {
-    if(!req.body.title) {
-        return res.status(400).json({'error': 'title обязателен'})
-    }
-
-    if (typeof req.body.title !== 'string') {
-        return res.status(400).json({'error': 'title должен быть строкой'})
-    }
+router.post('/',validateTitle,(req,res) => {
 
     const task = tasksData.create(req.body.title)
 
@@ -36,15 +29,7 @@ router.post('/', (req,res) => {
 })
 
 
-router.put('/:id',(req,res) => {
-
-    if(!req.body.title) {
-        return res.status(400).json({'error': 'title обязателен'})
-    }
-
-    if (typeof req.body.title !== 'string') {
-        return res.status(400).json({'error': 'title должен быть строкой'})
-    }
+router.put('/:id',validateTitle,(req,res) => {
 
     const task = tasksData.update(req.params.id, req.body.title);
 

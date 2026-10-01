@@ -3,6 +3,7 @@ const logger = require('./middlewares/logger.js')
 const app = express()
 const tasksRouter = require('./routes/tasks');
 const notFound = require('./middlewares/notFound');
+const errorHandler = require('./middlewares/errorHandler');
 
 app.disable('x-powered-by');
 app.use(express.json())
@@ -12,6 +13,7 @@ app.get('/', (req, res) => {
 });
 app.use('/tasks', tasksRouter);
 app.use(notFound)
+app.use(errorHandler)
 
 
 
