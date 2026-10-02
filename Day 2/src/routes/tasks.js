@@ -5,13 +5,14 @@ const validateTitle = require('../middlewares/validateTitle');
 const tasksData = require('../data/tasks')
 
 
-router.get('/', (req,res) => {
-    res.status(200).json(tasksData.getAll())
+router.get('/', async (req,res) => {
+    const tasks = await tasksData.getAll();
+    res.status(200).json(tasks);
 })
 
 
-router.get('/:id',(req,res) => {
-    const task = tasksData.getById(req.params.id)
+router.get('/:id',async (req,res) => {
+    const task =  await tasksData.getById(req.params.id)
 
     if (!task) {
     return res.status(404).json({ error: 'Задача не найдена' });
@@ -20,18 +21,18 @@ router.get('/:id',(req,res) => {
     res.status(200).json(task)
 })
 
-router.post('/',validateTitle,(req,res) => {
+router.post('/',validateTitle,async(req,res) => {
 
-    const task = tasksData.create(req.body.title)
+    const task = await tasksData.create(req.body.title)
 
     return res.status(201).json(task)
 
 })
 
 
-router.put('/:id',validateTitle,(req,res) => {
+router.put('/:id',validateTitle,async(req,res) => {
 
-    const task = tasksData.update(req.params.id, req.body.title);
+    const task = await tasksData.update(req.params.id, req.body.title);
 
     if (!task) {
         return res.status(404).json({ error: 'Задача не найдена' });
@@ -41,8 +42,8 @@ router.put('/:id',validateTitle,(req,res) => {
 })
 
 
-router.delete('/:id',(req,res) => {
-   const removeTask = tasksData.remove(req.params.id)
+router.delete('/:id',async(req,res) => {
+   const removeTask =  await tasksData.remove(req.params.id)
 
     if (!removeTask) {
         return res.status(404).json({ error: 'Задача не найдена' });

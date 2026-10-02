@@ -1,39 +1,40 @@
-const tasks = [];
-
-let nextId = 1;
+const pool = require('./db');
 
 
-function getAll() {
-    return tasks
+
+async function getAll() {
+    const result = await pool.query('SELECT * FROM tasks')
+    return result.rows;
 }
 
-function getById(id) {
-    return tasks.find(task => task.id === Number(id))
+async function getById(id) {
+    const result = await pool.query('SELECT * FROM tasks WHERE id = $1', [id]);
+    return result.rows[0];
 }
 
 
-function create(title) {
-    const task = {
-        id: nextId++,
-        title,
-        createdAt: new Date().toISOString()
-    };
-    tasks.push(task);
-    return task;
+async function create(title) {
+    const result = await pool.query(
+        'INSERT INTO tasks (title) VALUES ($1) RETURNING *',
+        [title]
+    );
+    return result.rows[0];
 }
 
-function update(id, title) {
-    const task = tasks.find(t => t.id === Number(id));
-    if (!task) return undefined;
-    task.title = title;
-    return task;
+async function update(id, title) {
+    const result = await pool.query(
+        'UPDATE tasks SET title = $1 WHERE id = $2 RETURNING *',
+        [title, id]
+    );
+    return result.rows[0];
 }
 
-function remove(id) {
-    const index = tasks.findIndex(t => t.id === Number(id));
-    if (index === -1) return false;
-    tasks.splice(index, 1);
-    return true;
+async function remove(id) {
+    const result = await pool.query(
+        'DELETE FROM tasks WHERE id = $1 RETURNING *',
+        [id]
+    );
+    return result.rows[0];
 }
 
 module.exports = { getAll, getById, create, update, remove };
