@@ -10,8 +10,9 @@
 `task-manager` — REST API для управления задачами. Учебный проект, который эволюционирует:
 PostgreSQL → аутентификация → WebSocket → фронтенд на Next.js.
 
-**Текущий статус:** день 4 завершён (02.10.2026). CRUD работает на PostgreSQL.
-Данные **выживают перезапуск сервера**. Следующий шаг — миграции и связи.
+**Текущий статус:** день 5 завершён (03.10.2026). CRUD работает на PostgreSQL,
+таблица `users` создана, `tasks` связана с `users` через foreign key. JOIN освоен.
+Следующий шаг — аутентификация (JWT).
 
 ---
 
@@ -24,6 +25,10 @@ JavaScript Intensive/
 │   └── taskManager/
 │       └── server.js           ← голый Node.js сервер (для сравнения)
 └── Day 2/                      ← основной проект
+    ├── migrations/             ← SQL-миграции
+    │   ├── 001_create_tasks.sql
+    │   ├── 002_create_users.sql
+    │   └── 003_add_user_id_to_tasks.sql
     ├── src/
     │   ├── app.js              ← сборка Express: middleware + роуты
     │   ├── server.js           ← запуск: app.listen(3001)
@@ -42,7 +47,9 @@ JavaScript Intensive/
     └── .gitignore
 ```
 
-**Git:** единый репозиторий в корне `JavaScript Intensive`. Семь коммитов:
+**Git:** единый репозиторий в корне `JavaScript Intensive`. Восемь коммитов:
+- `Day 5: migrations, users table, foreign key, JOIN`
+- `634dad0` Update notes after Day 4
 - `e65c36b` Day 4: migrate from in-memory array to PostgreSQL
 - `eecce5a` Add PostgreSQL environment info
 - `bfc1be0` Day 3: CRUD, validateTitle middleware, errorHandler
@@ -62,6 +69,11 @@ JavaScript Intensive/
 - Добавлен в PATH — `psql` работает из любого места.
 - Подключение: `psql -U postgres -h localhost -d task_manager`.
 - База: `task_manager`.
+
+**Миграции:**
+```bash
+psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
+```
 
 ---
 
@@ -130,7 +142,7 @@ JavaScript Intensive/
 
 **Изучено:**
 - **Пул соединений** (`Pool`) — переиспользование, не создавать на каждый запрос.
-- **`pool.query()`** — для простых запросов `connect()` не нужен, пул сам берёт соединение.
+- **`pool.query()`** — для простых запросов `connect()` не нужен.
 - **Плейсхолдеры** `$1`, `$2` — защита от **SQL-инъекций**. Никогда не конкатенируй SQL с данными клиента.
 - **`RETURNING *`** — возврат строки после INSERT/UPDATE/DELETE.
 - **`result.rows`** — массив строк, `result.rows[0]` — первая.
@@ -148,13 +160,33 @@ JavaScript Intensive/
 - Роуты — все `async` + `await`.
 - Данные **выживают перезапуск сервера**.
 
+### День 5 — Миграции и связи
+
+**Изучено:**
+- **Миграции** — SQL-файлы в `migrations/`, применяются через `psql -f`.
+- **`IF NOT EXISTS`** — идемпотентность, можно применять повторно.
+- **`UNIQUE`** — запрет дубликатов (email).
+- **Foreign key** — `REFERENCES users(id)`, защита от ссылок на несуществующие записи.
+- **`ON DELETE CASCADE`** — при удалении пользователя удаляются его задачи.
+- **`JOIN` vs `LEFT JOIN`:**
+  - `JOIN` — только строки **с совпадением** в обеих таблицах.
+  - `LEFT JOIN` — **все** строки из левой таблицы, даже без совпадения (справа — `NULL`).
+
+**Сделано:**
+- `migrations/001_create_tasks.sql`
+- `migrations/002_create_users.sql`
+- `migrations/003_add_user_id_to_tasks.sql`
+- Таблица `users`: `id`, `email UNIQUE NOT NULL`, `password_hash`, `created_at`.
+- Колонка `user_id` в `tasks` — foreign key на `users(id)`, `ON DELETE CASCADE`.
+- Удалил `node-pg-migrate` — используем ручные миграции.
+
 ---
 
-## Слабые места (что заметил за 4 дня)
+## Слабые места (что заметил за 5 дней)
 
 Это **важнее** всего остального. На собесе спросят именно об этом.
 
-1. **Опечатки в ключах.** `recived` вместо `received`, `tittle` вместо `title`, `createAt` вместо `createdAt`. Это **реальные баги**, не придирки.
+1. **Опечатки в ключах.** `recived` вместо `received`, `tittle` вместо `title`, `createAt` вместо `createdAt`, `d` вместо `id`, `task` вместо `tasks`. Это **реальные баги**, не придирки.
 
 2. **Забываешь `return`.** В `getById` через `forEach`, в `res.end()`. Привычка: **после каждого `res.end()` / `res.json()` — `return`**.
 
@@ -176,13 +208,19 @@ JavaScript Intensive/
 
 11. **Забываешь `async`/`await` в роутах.** `GET /` возвращал `{}` вместо массива. **Правило:** если функция асинхронная — все, кто её вызывает, тоже async + await.
 
-12. **Возвращаешь `result`, а не `result.rows`.** Клиент получает гигантский объект с метаданными (`command`, `fields`, `_types`) вместо массива данных.
+12. **Возвращаешь `result`, а не `result.rows`.** Клиент получает гигантский объект с метаданными.
 
-13. **Используешь `pool.connect()` вместо `pool.query()`.** Для простых запросов `connect` **не нужен**. Только для транзакций.
+13. **Используешь `pool.connect()` вместо `pool.query()`.** Для простых запросов `connect` **не нужен**.
 
-14. **Не перезапускаешь сервер после правок.** `node src/server.js` **не подхватывает** изменения. `Ctrl+C` → заново. **Правило:** после каждой правки — перезапуск.
+14. **Не перезапускаешь сервер после правок.** `node src/server.js` **не подхватывает** изменения. `Ctrl+C` → заново.
 
 15. **PowerShell пишет в Windows-1251, а не UTF-8.** Кириллица в файлах, отредактированных через PowerShell, ломается. **Редактируй в VS Code.**
+
+16. **Забываешь `;` в SQL.** `psql` переходит в режим `-#` — ждёт продолжения. **Точка с запятой обязательна.**
+
+17. **Делаешь `UPDATE`/`DELETE` без проверки, какие id есть.** `UPDATE 0` = ни одна строка не обновилась. Сначала `SELECT`, потом действие.
+
+18. **Путаешь `id` пользователей и задач.** Пользователь мог быть `id:3`, а не `id:1` — из-за удалений и `SERIAL`. **Проверяй `SELECT` перед `INSERT`/`UPDATE`.**
 
 ---
 
@@ -194,8 +232,8 @@ JavaScript Intensive/
 - [x] ~~Express + структура~~ — сделано
 - [x] ~~CRUD + middleware~~ — сделано
 - [x] ~~PostgreSQL — замена массива~~ — сделано
-- [ ] **Миграции и связи** — таблица `users`, foreign key, JOIN
-- [ ] Аутентификация (JWT) + HTTPS-теория
+- [x] ~~Миграции и связи~~ — сделано
+- [ ] **Аутентификация (JWT)** + HTTPS-теория — регистрация, логин, middleware `auth`
 - [ ] Валидация (zod/joi)
 - [ ] gRPC
 - [ ] GraphQL
@@ -229,11 +267,11 @@ JavaScript Intensive/
 
 Если этот файл скидывают в новый чат — контекст такой:
 
-- Пользователь учится на fullstack-разработчика, 4 дня опыта с Node.js/Express.
-- Стек: Node.js, Express, PostgreSQL. Данные в базе, не в памяти.
+- Пользователь учится на fullstack-разработчика, 5 дней опыта с Node.js/Express/PostgreSQL.
+- Стек: Node.js, Express, PostgreSQL. Данные в базе, не в памяти. Миграции — ручные SQL-файлы.
 - Стиль обучения: **не писать код за него**. Говорить, что делать, давать подсказки, разбирать его код. Только направлять.
 - Пользователь знает Python и JavaScript, имеет небольшой опыт работы (Node.js + React).
 - Цель: найти работу как можно быстрее.
-- Слабые места: см. раздел выше — опечатки, `return`, `async`/`await`, порядок middleware.
+- Слабые места: см. раздел выше — **опечатки** (главная проблема), `return`, `async`/`await`, порядок middleware, `;` в SQL.
 
 **Формат ответов:** структурированные, с разбором ошибок, без готового кода. Когда он ошибается — объяснять **почему**, а не просто «вот правильно».
