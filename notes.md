@@ -1,6 +1,6 @@
 # Task Manager — Project Notes
 
-> Контекст для продолжения работы. Стек: Node.js, Express, PostgreSQL, JWT.
+> Контекст для продолжения работы. Стек: Node.js, Express, PostgreSQL, JWT, zod.
 > Цель: fullstack-разработчик, поиск работы.
 
 ---
@@ -8,11 +8,11 @@
 ## Что это за проект
 
 `task-manager` — REST API для управления задачами. Учебный проект, который эволюционирует:
-PostgreSQL → аутентификация → WebSocket → фронтенд на Next.js.
+PostgreSQL → аутентификация → валидация → WebSocket → фронтенд на Next.js.
 
-**Текущий статус:** день 6 завершён (05.10.2026). CRUD работает на PostgreSQL,
-аутентификация через JWT, роуты защищены, задачи привязаны к пользователям.
-Следующий шаг — валидация через zod.
+**Текущий статус:** день 7 завершён (05.10.2026). CRUD работает на PostgreSQL,
+аутентификация через JWT, роуты защищены, задачи привязаны к пользователям,
+валидация через `zod`. Следующий шаг — кастомные ошибки.
 
 ---
 
@@ -36,6 +36,9 @@ JavaScript Intensive/
     │   │   ├── db.js           ← пул соединений с PostgreSQL
     │   │   ├── users.js        ← работа с users (findByEmail, create, findById)
     │   │   └── tasks.js        ← CRUD на SQL с привязкой к user_id
+    │   ├── schemas/
+    │   │   ├── auth.js         ← registerSchema, loginSchema
+    │   │   └── task.js         ← taskSchema
     │   ├── routes/
     │   │   ├── auth.js         ← POST /auth/register, POST /auth/login
     │   │   └── tasks.js        ← 5 роутов /tasks (защищены auth)
@@ -43,18 +46,20 @@ JavaScript Intensive/
     │       ├── logger.js       ← логирование каждого запроса
     │       ├── notFound.js     ← 404 в конце
     │       ├── auth.js         ← проверка JWT → req.user
-    │       ├── validateTitle.js ← валидация title
+    │       ├── validate.js     ← универсальный validate(schema)
     │       └── errorHandler.js ← обработка ошибок
     ├── .env                    ← секреты (НЕ в Git): DB_*, JWT_SECRET
     ├── package.json
     └── .gitignore
 ```
 
-**Git:** единый репозиторий в корне `JavaScript Intensive`. Одиннадцать коммитов:
+**Git:** единый репозиторий в корне `JavaScript Intensive`. Тринадцать коммитов:
+- `Day 7: zod validation, universal validate middleware`
+- `Update notes after Day 7`
 - `3ca6f24` Day 6: JWT authentication, protected routes, user-owned tasks
-- `Update notes after Day 5`
+- `Update notes after Day 6`
 - `9afc242` Day 5: migrations, users table, foreign key, JOIN
-- `dd930b9` Update notes after Day 4
+- `dd930b9` Update notes after Day 5
 - `e65c36b` Day 4: migrate from in-memory array to PostgreSQL
 - `eecce5a` Add PostgreSQL environment info
 - `bfc1be0` Day 3: CRUD, validateTitle middleware, errorHandler
@@ -63,7 +68,8 @@ JavaScript Intensive/
 - `f2c0818` Day 2: modular structure + disable x-powered-by
 - `482c90f` Days 1-2: raw HTTP server + Express server
 
-**⚠️ Проблема:** email в Git настроен **неверно** — `podzorovvvivan@gmail.com@gmail.com` (двойной домен). Нужно исправить: `git config --global user.email "podzorovvvivan@gmail.com"`.
+**Email в Git — исправлен:** `podzorovvvivan@gmail.com` (без двойного `@gmail.com`).
+**Осталось:** старые 12 коммитов **с неверным** email — при пуше на GitHub **не свяжутся** с аккаунтом. Если критично — исправить через `git filter-branch` **перед** публикацией.
 
 ---
 
@@ -81,6 +87,14 @@ JavaScript Intensive/
 ```bash
 psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 ```
+
+**Зависимости:**
+- `express` — веб-фреймворк.
+- `pg` — PostgreSQL клиент.
+- `dotenv` — переменные окружения.
+- `bcrypt` — хеширование паролей.
+- `jsonwebtoken` — JWT.
+- `zod` 4.6.5 — валидация.
 
 ---
 
@@ -166,33 +180,47 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 ### День 6 — Аутентификация (JWT)
 
 **Изучено:**
-- **`bcrypt`:** `hash(password, 10)`, `compare(password, hash)`. Медленный специально — защита от подбора.
+- **`bcrypt`:** `hash(password, 10)`, `compare(password, hash)`. Медленный специально.
 - **`jsonwebtoken`:** `sign(payload, secret, { expiresIn })`, `verify(token, secret)`.
 - **JWT:** `header.payload.signature`. Payload **читается**, но **не подделывается**.
 - **Middleware `auth`:** `Bearer <token>` → `jwt.verify` → `req.user = { userId }`.
-- **Безопасность:** одинаковые сообщения об ошибках — не раскрывать, что именно неверно.
+- **Безопасность:** одинаковые сообщения об ошибках.
 - **Защита от чужих данных:** `WHERE id = $1 AND user_id = $2`.
 - **404 вместо 403:** не подсказывать, что чужая задача существует.
 
 **Сделано:**
-- `data/users.js` — `findByEmail`, `create`, `findById`.
-- `routes/auth.js` — `POST /auth/register`, `POST /auth/login`.
-- `middlewares/auth.js` — проверка JWT.
+- `data/users.js`, `routes/auth.js`, `middlewares/auth.js`.
 - `data/tasks.js` — все функции с `user_id`.
 - `routes/tasks.js` — все роуты защищены `auth`.
 - `JWT_SECRET` в `.env`.
 
-**Проверено curl-ом:**
-- Без токена → **401** «Требуется авторизация».
-- Логин → **200** + JWT.
-- С токеном → **200** + свои задачи.
-- Создание → **201** + задача с `user_id`.
-- Чужая задача → **404**.
-- Невалидный токен → **401**.
+**Проверено curl-ом:** 401 без токена, 200 с токеном, 201 с `user_id`, 404 на чужую задачу, 401 на невалидный токен.
+
+### День 7 — Валидация через zod
+
+**Изучено:**
+- **`zod`** — декларативная валидация. Схемы описывают правила в одном месте.
+- **`z.object({...})`** — объект-схема.
+- **Цепочки:** `z.string().trim().min(1).max(255)`.
+- **`.trim()` перед `.min()`** — иначе `'   '` пройдёт проверку.
+- **`safeParse()`** — не бросает, возвращает `{ success, data | error }`.
+- **`result.error.issues`** — в `zod` 4.x (было `errors` в 3.x).
+- **Универсальный middleware** — фабрика `(schema) => (req, res, next)`.
+- **`req.body = result.data`** — замена на очищенные данные.
+
+**Сделано:**
+- `src/schemas/auth.js` — `registerSchema`, `loginSchema`.
+- `src/schemas/task.js` — `taskSchema`.
+- `src/middlewares/validate.js` — универсальный middleware.
+- `routes/auth.js` — `validate(registerSchema)` и `validate(loginSchema)`.
+- `routes/tasks.js` — `validate(taskSchema)` вместо `validateTitle`.
+- **Удалён** `middlewares/validateTitle.js`.
+
+**Проверено curl-ом:** невалидный email → 400, короткий пароль → 400, валидная регистрация → 201, логин → JWT, пустой title → 400, валидный title → 201.
 
 ---
 
-## Слабые места (что заметил за 6 дней)
+## Слабые места (что заметил за 7 дней)
 
 Это **важнее** всего остального. На собесе спросят именно об этом.
 
@@ -208,7 +236,7 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 
 6. **`app.use(logger())` вместо `app.use(logger)`.** Скобки вызывают **сейчас**.
 
-7. **JSON в curl (PowerShell/cmd).** Двойные кавычки снаружи → `\"` внутри. Одинарные снаружи → двойные внутри без экранирования.
+7. **JSON в curl (PowerShell/cmd).** Двойные кавычки снаружи → `\"` внутри.
 
 8. **`errorHandler` не последним.** Express ищет **снизу вверх**.
 
@@ -216,7 +244,7 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 
 10. **Мёртвый `next()` после `return`.** В error-handler не нужен.
 
-11. **Забываешь `async`/`await` в роутах.** Если функция асинхронная — все, кто её вызывает, тоже.
+11. **Забываешь `async`/`await` в роутах.**
 
 12. **Возвращаешь `result`, а не `result.rows`.**
 
@@ -232,11 +260,15 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 
 18. **Путаешь `id` пользователей и задач.** Проверяй `SELECT` перед действием.
 
-19. **Забываешь `module.exports` в новом модуле.** Express падает с `argument handler must be a function`. **Правило:** после создания модуля — **сразу** добавить `module.exports`.
+19. **Забываешь `module.exports` в новом модуле.** Express падает с `argument handler must be a function`.
 
-20. **Путаешь `snake_case` и `camelCase`.** В SQL — `user_id`, в JS — `userId`. При переименовании параметра — **проверять массив** тоже. **Правило:** после переименования — `Ctrl+F` по старому имени.
+20. **Путаешь `snake_case` и `camelCase`.** В SQL — `user_id`, в JS — `userId`. **Правило:** после переименования — `Ctrl+F` по старому имени.
 
 21. **Переименование переменной — не везде.** `existing` → `user` в двух местах, в третьем — забыл. **Правило:** `F2` в VS Code для переименования во всём файле.
+
+22. **Путаю версии библиотек.** `zod` 4 изменил API (`errors` → `issues`). **Правило:** при странной ошибке — проверить версию (`npm list <pkg>`) и сверить с актуальной документацией.
+
+23. **`Object.keys()` не показывает геттеры.** `Object.keys(r.error)` вернул `['name', 'message']` — обманчиво. `issues` — в **прототипе**. **Правило:** при отладке — обращаться к свойству **напрямую**, а не через `Object.keys`.
 
 ---
 
@@ -250,8 +282,8 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 - [x] ~~PostgreSQL — замена массива~~ — сделано
 - [x] ~~Миграции и связи~~ — сделано
 - [x] ~~Аутентификация (JWT)~~ — сделано
-- [ ] **Валидация (zod)** — следующий шаг
-- [ ] Кастомные ошибки (ValidationError, NotFoundError)
+- [x] ~~Валидация (zod)~~ — сделано
+- [ ] **Кастомные ошибки** — `NotFoundError`, `ValidationError`
 - [ ] gRPC
 - [ ] GraphQL
 - [ ] NoSQL (MongoDB) — обзорно
@@ -277,6 +309,7 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 - node-postgres (pg): https://node-postgres.com/
 - bcrypt: https://www.npmjs.com/package/bcrypt
 - jsonwebtoken: https://www.npmjs.com/package/jsonwebtoken
+- zod: https://zod.dev
 - JWT decoder: https://jwt.io
 - javascript.info: https://learn.javascript.ru
 - Roadmap Backend: https://roadmap.sh/backend
@@ -287,11 +320,11 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 
 Если этот файл скидывают в новый чат — контекст такой:
 
-- Пользователь учится на fullstack-разработчика, 6 дней опыта с Node.js/Express/PostgreSQL/JWT.
-- Стек: Node.js, Express, PostgreSQL, JWT, bcrypt. Миграции — ручные SQL-файлы.
+- Пользователь учится на fullstack-разработчика, 7 дней опыта с Node.js/Express/PostgreSQL/JWT/zod.
+- Стек: Node.js, Express, PostgreSQL, JWT, bcrypt, zod. Миграции — ручные SQL-файлы.
 - Стиль обучения: **не писать код за него**. Говорить, что делать, давать подсказки, разбирать его код. Только направлять.
 - Пользователь знает Python и JavaScript, имеет небольшой опыт работы (Node.js + React).
 - Цель: найти работу как можно быстрее.
-- Слабые места: **опечатки** (главная проблема — 5+ раз за сессию), `return`, `async`/`await`, порядок middleware, `;` в SQL, `snake_case` vs `camelCase`, забывает `module.exports`.
+- Слабые места: **опечатки** (главная проблема), `return`, `async`/`await`, порядок middleware, `;` в SQL, `snake_case` vs `camelCase`, забывает `module.exports`, путает версии библиотек.
 
 **Формат ответов:** структурированные, с разбором ошибок, без готового кода. Когда он ошибается — объяснять **почему**, а не просто «вот правильно».
