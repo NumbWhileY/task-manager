@@ -3,16 +3,17 @@ const router = express.Router();
 
 const validateTitle = require('../middlewares/validateTitle');
 const tasksData = require('../data/tasks')
+const auth = require('../middlewares/auth');
 
 
-router.get('/', async (req,res) => {
-    const tasks = await tasksData.getAll();
+router.get('/',auth,async (req,res) => {
+    const tasks = await tasksData.getAll(req.user.userId);
     res.status(200).json(tasks);
 })
 
 
-router.get('/:id',async (req,res) => {
-    const task =  await tasksData.getById(req.params.id)
+router.get('/:id',auth,async (req,res) => {
+    const task =  await tasksData.getById(req.params.id,req.user.userId)
 
     if (!task) {
     return res.status(404).json({ error: 'Задача не найдена' });
@@ -21,18 +22,18 @@ router.get('/:id',async (req,res) => {
     res.status(200).json(task)
 })
 
-router.post('/',validateTitle,async(req,res) => {
+router.post('/',auth,validateTitle,async(req,res) => {
 
-    const task = await tasksData.create(req.body.title)
+    const task = await tasksData.create(req.body.title,req.user.userId)
 
     return res.status(201).json(task)
 
 })
 
 
-router.put('/:id',validateTitle,async(req,res) => {
+router.put('/:id',auth,validateTitle,async(req,res) => {
 
-    const task = await tasksData.update(req.params.id, req.body.title);
+    const task = await tasksData.update(req.params.id, req.body.title,req.user.userId);
 
     if (!task) {
         return res.status(404).json({ error: 'Задача не найдена' });
@@ -42,8 +43,8 @@ router.put('/:id',validateTitle,async(req,res) => {
 })
 
 
-router.delete('/:id',async(req,res) => {
-   const removeTask =  await tasksData.remove(req.params.id)
+router.delete('/:id',auth,async(req,res) => {
+   const removeTask =  await tasksData.remove(req.params.id,req.user.userId)
 
     if (!removeTask) {
         return res.status(404).json({ error: 'Задача не найдена' });

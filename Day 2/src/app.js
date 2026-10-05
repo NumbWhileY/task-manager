@@ -2,6 +2,7 @@ const express = require('express')
 const logger = require('./middlewares/logger.js')
 const app = express()
 const tasksRouter = require('./routes/tasks');
+const authRouter = require('./routes/auth');
 const notFound = require('./middlewares/notFound');
 const errorHandler = require('./middlewares/errorHandler');
 
@@ -12,6 +13,7 @@ app.get('/', (req, res) => {
     res.json({ message: 'Hello world' });
 });
 app.use('/tasks', tasksRouter);
+app.use('/auth',authRouter)
 app.use(notFound)
 app.use(errorHandler)
 
