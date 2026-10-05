@@ -7,12 +7,12 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 
-router.post('/register', async(req,res) => {
+const validate = require('../middlewares/validate')
 
-    if (!req.body.email || !req.body.password) 
-    {
-        return res.status(400).json({ error: 'email и password обязательны' });
-    }
+const {loginSchema, registerSchema} = require('../schemas/auth')
+
+
+router.post('/register',validate(registerSchema),async(req,res) => {
 
     const existing = await userData.findByEmail(req.body.email);
     
@@ -24,11 +24,8 @@ router.post('/register', async(req,res) => {
 })
 
 
-router.post('/login',async(req,res) => {
-    if (!req.body.email || !req.body.password) {
-        return res.status(400).json({ error: 'email и password обязательны' });
-    }
-
+router.post('/login',validate(loginSchema),async(req,res) => {
+   
     const user = await userData.findByEmail(req.body.email);
     
     if (!user) return res.status(401).json({ error: 'Неверный email или пароль' });

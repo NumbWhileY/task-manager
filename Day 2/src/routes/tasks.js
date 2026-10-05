@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 
-const validateTitle = require('../middlewares/validateTitle');
+const validate = require('../middlewares/validate')
+
+const {taskSchema} = require('../schemas/task')
 const tasksData = require('../data/tasks')
 const auth = require('../middlewares/auth');
 
@@ -22,7 +24,7 @@ router.get('/:id',auth,async (req,res) => {
     res.status(200).json(task)
 })
 
-router.post('/',auth,validateTitle,async(req,res) => {
+router.post('/',auth,validate(taskSchema),async(req,res) => {
 
     const task = await tasksData.create(req.body.title,req.user.userId)
 
@@ -31,7 +33,7 @@ router.post('/',auth,validateTitle,async(req,res) => {
 })
 
 
-router.put('/:id',auth,validateTitle,async(req,res) => {
+router.put('/:id',auth,validate(taskSchema),async(req,res) => {
 
     const task = await tasksData.update(req.params.id, req.body.title,req.user.userId);
 
