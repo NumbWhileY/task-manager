@@ -8,11 +8,11 @@
 ## Что это за проект
 
 `task-manager` — REST API для управления задачами. Учебный проект, который эволюционирует:
-PostgreSQL → аутентификация → валидация → WebSocket → фронтенд на Next.js.
+PostgreSQL → аутентификация → валидация → кастомные ошибки → тесты → WebSocket → фронтенд на Next.js.
 
-**Текущий статус:** день 7 завершён (05.10.2026). CRUD работает на PostgreSQL,
+**Текущий статус:** день 8 завершён (07.10.2026). CRUD работает на PostgreSQL,
 аутентификация через JWT, роуты защищены, задачи привязаны к пользователям,
-валидация через `zod`. Следующий шаг — кастомные ошибки.
+валидация через `zod`, кастомные классы ошибок. Следующий шаг — тесты.
 
 ---
 
@@ -36,6 +36,9 @@ JavaScript Intensive/
     │   │   ├── db.js           ← пул соединений с PostgreSQL
     │   │   ├── users.js        ← работа с users (findByEmail, create, findById)
     │   │   └── tasks.js        ← CRUD на SQL с привязкой к user_id
+    │   ├── errors/
+    │   │   ├── AppError.js     ← базовый класс
+    │   │   └── index.js        ← NotFoundError, ValidationError, UnauthorizedError, ConflictError
     │   ├── schemas/
     │   │   ├── auth.js         ← registerSchema, loginSchema
     │   │   └── task.js         ← taskSchema
@@ -47,19 +50,22 @@ JavaScript Intensive/
     │       ├── notFound.js     ← 404 в конце
     │       ├── auth.js         ← проверка JWT → req.user
     │       ├── validate.js     ← универсальный validate(schema)
-    │       └── errorHandler.js ← обработка ошибок
+    │       └── errorHandler.js ← обработка ошибок (statusCode)
     ├── .env                    ← секреты (НЕ в Git): DB_*, JWT_SECRET
     ├── package.json
     └── .gitignore
 ```
 
-**Git:** единый репозиторий в корне `JavaScript Intensive`. Тринадцать коммитов:
-- `Day 7: zod validation, universal validate middleware`
+**Git:** единый репозиторий в корне `JavaScript Intensive`. Шестнадцать коммитов:
+- `Day 8: custom error classes (NotFoundError, ConflictError, UnauthorizedError)`
+- `Update notes after Day 8`
 - `Update notes after Day 7`
+- `0f317be` Day 7: zod validation, universal validate middleware
+- `a9605c9` Update notes after Day 6
 - `3ca6f24` Day 6: JWT authentication, protected routes, user-owned tasks
-- `Update notes after Day 6`
 - `9afc242` Day 5: migrations, users table, foreign key, JOIN
 - `dd930b9` Update notes after Day 5
+- `634dad0` Update notes after Day 4
 - `e65c36b` Day 4: migrate from in-memory array to PostgreSQL
 - `eecce5a` Add PostgreSQL environment info
 - `bfc1be0` Day 3: CRUD, validateTitle middleware, errorHandler
@@ -68,8 +74,8 @@ JavaScript Intensive/
 - `f2c0818` Day 2: modular structure + disable x-powered-by
 - `482c90f` Days 1-2: raw HTTP server + Express server
 
-**Email в Git — исправлен:** `podzorovvvivan@gmail.com` (без двойного `@gmail.com`).
-**Осталось:** старые 12 коммитов **с неверным** email — при пуше на GitHub **не свяжутся** с аккаунтом. Если критично — исправить через `git filter-branch` **перед** публикацией.
+**Email в Git — исправлен:** `podzorovvvivan@gmail.com`.
+**Осталось:** старые коммиты **с неверным** email — при пуше на GitHub **не свяжутся** с аккаунтом. Если критично — исправить через `git filter-branch` **перед** публикацией.
 
 ---
 
@@ -218,15 +224,36 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 
 **Проверено curl-ом:** невалидный email → 400, короткий пароль → 400, валидная регистрация → 201, логин → JWT, пустой title → 400, валидный title → 201.
 
+### День 8 — Кастомные ошибки
+
+**Изучено:**
+- **`class AppError extends Error`** — базовый класс. `super(message)`, `this.statusCode`, `this.isOperational`.
+- **`Error.captureStackTrace(this, this.constructor)`** — чистый стек.
+- **Наследники:** `NotFoundError` (404), `ValidationError` (400), `UnauthorizedError` (401), `ConflictError` (409).
+- **`throw new NotFoundError(...)`** в async-роутах — Express 5 ловит.
+- **`next(new UnauthorizedError(...))`** в middleware — работает во всех версиях.
+- **`err.statusCode || err.status || 500`** — оба случая покрыты (`AppError` и `express.json`).
+- **`isOperational`** — флаг «ожидаемая ошибка» vs «баг».
+
+**Сделано:**
+- `src/errors/AppError.js` — базовый класс.
+- `src/errors/index.js` — `NotFoundError`, `ValidationError`, `UnauthorizedError`, `ConflictError`.
+- `middlewares/errorHandler.js` — читает `statusCode`.
+- `routes/tasks.js` — `throw new NotFoundError(...)`.
+- `routes/auth.js` — `throw new ConflictError(...)`, `throw new UnauthorizedError(...)`.
+- `middlewares/auth.js` — `next(new UnauthorizedError(...))`.
+
+**Проверено curl-ом:** дубликат email → 409, неверный пароль → 401, несуществующий email → 401 (не 500), без токена → 401, невалидный токен → 401.
+
 ---
 
-## Слабые места (что заметил за 7 дней)
+## Слабые места (что заметил за 8 дней)
 
 Это **важнее** всего остального. На собесе спросят именно об этом.
 
 1. **Опечатки в ключах.** `recived` вместо `received`, `tittle` вместо `title`, `createAt` вместо `createdAt`, `d` вместо `id`, `task` вместо `tasks`, `passswor` вместо `password`. **Реальные баги.**
 
-2. **Забываешь `return`.** В `getById` через `forEach`, в `res.end()`. **Правило:** после `res.end()` / `res.json()` — `return`.
+2. **Забываешь `return`.** После `res.end()` / `res.json()` — `return`.
 
 3. **Порядок проверок.** Валидация — всегда **первой**.
 
@@ -234,13 +261,13 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 
 5. **Порядок middleware в `app.js`.** `json` → `logger` → роуты → `notFound` → `errorHandler`.
 
-6. **`app.use(logger())` вместо `app.use(logger)`.** Скобки вызывают **сейчас**.
+6. **`app.use(logger())` вместо `app.use(logger)`.**
 
 7. **JSON в curl (PowerShell/cmd).** Двойные кавычки снаружи → `\"` внутри.
 
 8. **`errorHandler` не последним.** Express ищет **снизу вверх**.
 
-9. **Хардкод статуса в errorHandler.** `const status = err.status || 500`.
+9. **Хардкод статуса в errorHandler.** `const status = err.statusCode || err.status || 500`.
 
 10. **Мёртвый `next()` после `return`.** В error-handler не нужен.
 
@@ -260,21 +287,25 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 
 18. **Путаешь `id` пользователей и задач.** Проверяй `SELECT` перед действием.
 
-19. **Забываешь `module.exports` в новом модуле.** Express падает с `argument handler must be a function`.
+19. **Забываешь `module.exports` в новом модуле.**
 
 20. **Путаешь `snake_case` и `camelCase`.** В SQL — `user_id`, в JS — `userId`. **Правило:** после переименования — `Ctrl+F` по старому имени.
 
-21. **Переименование переменной — не везде.** `existing` → `user` в двух местах, в третьем — забыл. **Правило:** `F2` в VS Code для переименования во всём файле.
+21. **Переименование переменной — не везде.** **Правило:** `F2` в VS Code.
 
-22. **Путаю версии библиотек.** `zod` 4 изменил API (`errors` → `issues`). **Правило:** при странной ошибке — проверить версию (`npm list <pkg>`) и сверить с актуальной документацией.
+22. **Путаю версии библиотек.** `zod` 4 изменил API (`errors` → `issues`).
 
-23. **`Object.keys()` не показывает геттеры.** `Object.keys(r.error)` вернул `['name', 'message']` — обманчиво. `issues` — в **прототипе**. **Правило:** при отладке — обращаться к свойству **напрямую**, а не через `Object.keys`.
+23. **`Object.keys()` не показывает геттеры.** Обращаться к свойству **напрямую**.
+
+24. **Класс без `new`.** `throw NotFoundError(...)` → TypeError. Имя с большой буквы = класс = нужен `new`.
+
+25. **Обращение к свойству до проверки на undefined.** `user.password_hash` до `if (!user)`. **Паттерн** — уже второй раз.
+
+26. **`throw` в `catch`.** Работает, но `next(err)` в middleware — читаемее.
 
 ---
 
 ## Что дальше (порядок изучения)
-
-Без сроков — порядок фиксирован, темп твой.
 
 - [x] ~~HTTP + Node.js~~ — сделано
 - [x] ~~Express + структура~~ — сделано
@@ -283,7 +314,8 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 - [x] ~~Миграции и связи~~ — сделано
 - [x] ~~Аутентификация (JWT)~~ — сделано
 - [x] ~~Валидация (zod)~~ — сделано
-- [ ] **Кастомные ошибки** — `NotFoundError`, `ValidationError`
+- [x] ~~Кастомные ошибки~~ — сделано
+- [ ] **Тесты (Jest + Supertest)** — следующий шаг
 - [ ] gRPC
 - [ ] GraphQL
 - [ ] NoSQL (MongoDB) — обзорно
@@ -291,7 +323,6 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 - [ ] Redis (кэширование)
 - [ ] Message Brokers (RabbitMQ, Kafka)
 - [ ] Search Engines (Elasticsearch)
-- [ ] Тесты (Jest + Supertest)
 - [ ] Мониторинг (Winston, Prometheus)
 - [ ] DevOps: Docker, CI/CD, Nginx, Apache, HTTPS, SSH
 - [ ] Архитектура: слои, паттерны, микросервисы
@@ -320,11 +351,11 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 
 Если этот файл скидывают в новый чат — контекст такой:
 
-- Пользователь учится на fullstack-разработчика, 7 дней опыта с Node.js/Express/PostgreSQL/JWT/zod.
-- Стек: Node.js, Express, PostgreSQL, JWT, bcrypt, zod. Миграции — ручные SQL-файлы.
+- Пользователь учится на fullstack-разработчика, 8 дней опыта с Node.js/Express/PostgreSQL/JWT/zod.
+- Стек: Node.js, Express, PostgreSQL, JWT, bcrypt, zod. Миграции — ручные SQL-файлы. Кастомные ошибки.
 - Стиль обучения: **не писать код за него**. Говорить, что делать, давать подсказки, разбирать его код. Только направлять.
 - Пользователь знает Python и JavaScript, имеет небольшой опыт работы (Node.js + React).
 - Цель: найти работу как можно быстрее.
-- Слабые места: **опечатки** (главная проблема), `return`, `async`/`await`, порядок middleware, `;` в SQL, `snake_case` vs `camelCase`, забывает `module.exports`, путает версии библиотек.
+- Слабые места: **опечатки** (главная проблема), `return`, `async`/`await`, порядок middleware, `;` в SQL, `snake_case` vs `camelCase`, забывает `module.exports`, путает версии библиотек, забывает `new` перед классом, обращается к свойствам до проверки на `undefined`.
 
 **Формат ответов:** структурированные, с разбором ошибок, без готового кода. Когда он ошибается — объяснять **почему**, а не просто «вот правильно».
