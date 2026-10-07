@@ -1,6 +1,6 @@
 # Task Manager — Project Notes
 
-> Контекст для продолжения работы. Стек: Node.js, Express, PostgreSQL, JWT, zod.
+> Контекст для продолжения работы. Стек: Node.js, Express, PostgreSQL, JWT, zod, Jest.
 > Цель: fullstack-разработчик, поиск работы.
 
 ---
@@ -10,9 +10,10 @@
 `task-manager` — REST API для управления задачами. Учебный проект, который эволюционирует:
 PostgreSQL → аутентификация → валидация → кастомные ошибки → тесты → WebSocket → фронтенд на Next.js.
 
-**Текущий статус:** день 8 завершён (07.10.2026). CRUD работает на PostgreSQL,
+**Текущий статус:** день 9 завершён (07.10.2026). CRUD работает на PostgreSQL,
 аутентификация через JWT, роуты защищены, задачи привязаны к пользователям,
-валидация через `zod`, кастомные классы ошибок. Следующий шаг — тесты.
+валидация через `zod`, кастомные ошибки, **18 тестов** (unit + integration).
+Следующий шаг — мониторинг (Winston/Pino).
 
 ---
 
@@ -51,12 +52,20 @@ JavaScript Intensive/
     │       ├── auth.js         ← проверка JWT → req.user
     │       ├── validate.js     ← универсальный validate(schema)
     │       └── errorHandler.js ← обработка ошибок (statusCode)
-    ├── .env                    ← секреты (НЕ в Git): DB_*, JWT_SECRET
+    ├── tests/                  ← тесты
+    │   ├── setup.js            ← setup/teardown (beforeEach, afterAll)
+    │   ├── task.test.js        ← 8 unit-тестов для data/tasks.js
+    │   ├── auth.test.js        ← 7 integration-тестов для /auth/*
+    │   └── routes.test.js      ← 3 integration-теста для /tasks
+    ├── jest.config.js          ← конфиг Jest
+    ├── .env                    ← секреты (НЕ в Git): DB_*, DB_NAME_TEST, JWT_SECRET
     ├── package.json
     └── .gitignore
 ```
 
-**Git:** единый репозиторий в корне `JavaScript Intensive`. Шестнадцать коммитов:
+**Git:** единый репозиторий в корне `JavaScript Intensive`. Семнадцать коммитов:
+- `13be1c0` Day 9: Jest + Supertest tests (unit + integration)
+- `Update notes after Day 9`
 - `Day 8: custom error classes (NotFoundError, ConflictError, UnauthorizedError)`
 - `Update notes after Day 8`
 - `Update notes after Day 7`
@@ -86,12 +95,15 @@ JavaScript Intensive/
 - Порт: `5432`.
 - Пользователь: `postgres`.
 - Добавлен в PATH — `psql` работает из любого места.
+- **Две базы:**
+  - `task_manager` — разработка.
+  - `task_manager_test` — тесты.
 - Подключение: `psql -U postgres -h localhost -d task_manager`.
-- База: `task_manager`.
 
 **Миграции:**
 ```bash
 psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
+psql -U postgres -h localhost -d task_manager_test -f migrations/XXX_name.sql
 ```
 
 **Зависимости:**
@@ -101,6 +113,16 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 - `bcrypt` — хеширование паролей.
 - `jsonwebtoken` — JWT.
 - `zod` 4.6.5 — валидация.
+
+**Dev-зависимости:**
+- `jest` 30.5.2 — тест-фреймворк.
+- `supertest` 7.3.1 — HTTP-тесты.
+
+**Скрипты:**
+```bash
+npm test         # один прогон тестов
+npm run test:watch # следит за файлами
+```
 
 ---
 
@@ -200,8 +222,6 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 - `routes/tasks.js` — все роуты защищены `auth`.
 - `JWT_SECRET` в `.env`.
 
-**Проверено curl-ом:** 401 без токена, 200 с токеном, 201 с `user_id`, 404 на чужую задачу, 401 на невалидный токен.
-
 ### День 7 — Валидация через zod
 
 **Изучено:**
@@ -222,8 +242,6 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 - `routes/tasks.js` — `validate(taskSchema)` вместо `validateTitle`.
 - **Удалён** `middlewares/validateTitle.js`.
 
-**Проверено curl-ом:** невалидный email → 400, короткий пароль → 400, валидная регистрация → 201, логин → JWT, пустой title → 400, валидный title → 201.
-
 ### День 8 — Кастомные ошибки
 
 **Изучено:**
@@ -232,7 +250,7 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 - **Наследники:** `NotFoundError` (404), `ValidationError` (400), `UnauthorizedError` (401), `ConflictError` (409).
 - **`throw new NotFoundError(...)`** в async-роутах — Express 5 ловит.
 - **`next(new UnauthorizedError(...))`** в middleware — работает во всех версиях.
-- **`err.statusCode || err.status || 500`** — оба случая покрыты (`AppError` и `express.json`).
+- **`err.statusCode || err.status || 500`** — оба случая покрыты.
 - **`isOperational`** — флаг «ожидаемая ошибка» vs «баг».
 
 **Сделано:**
@@ -243,15 +261,41 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 - `routes/auth.js` — `throw new ConflictError(...)`, `throw new UnauthorizedError(...)`.
 - `middlewares/auth.js` — `next(new UnauthorizedError(...))`.
 
-**Проверено curl-ом:** дубликат email → 409, неверный пароль → 401, несуществующий email → 401 (не 500), без токена → 401, невалидный токен → 401.
+### День 9 — Тесты (Jest + Supertest)
+
+**Изучено:**
+- **Unit-тест** — одна функция, изолированно.
+- **Integration-тест** — весь поток: HTTP → Express → middleware → data → база.
+- **`Jest`** — тест-фреймворк. Находит `*.test.js`, запускает, отчитывается.
+- **`Supertest`** — HTTP-клиент для тестов. `request(app)` — без `listen`.
+- **`jest.config.js`** — `testEnvironment: 'node'`, `testMatch`, `setupFilesAfterEnv`.
+- **`setupFilesAfterEnv`** (не `AfterEach`!) — подключение setup-файла.
+- **`beforeEach`** — очистка перед каждым тестом.
+- **`afterAll`** — закрытие пула после всех тестов.
+- **`TRUNCATE users RESTART IDENTITY CASCADE`** — очистка + сброс id + каскад.
+- **Тестовая база** — `task_manager_test`, отдельно от `task_manager`.
+- **`NODE_ENV='test'`** — флаг тестового режима.
+- **`--forceExit`** — если Jest не завершается (крайняя мера).
+- **`--detectOpenHandles`** — найти открытые ресурсы.
+
+**Сделано:**
+- `jest.config.js` — конфиг.
+- `tests/setup.js` — setup/teardown.
+- `tests/task.test.js` — 8 unit-тестов для `data/tasks.js`.
+- `tests/auth.test.js` — 7 integration-тестов для `/auth/*`.
+- `tests/routes.test.js` — 3 integration-теста для `/tasks`.
+- `package.json` — `scripts: test, test:watch`.
+- `devDependencies`: `jest`, `supertest`.
+- **Тестовая база** `task_manager_test` + миграции.
+- **18 тестов** — все зелёные.
 
 ---
 
-## Слабые места (что заметил за 8 дней)
+## Слабые места (что заметил за 9 дней)
 
 Это **важнее** всего остального. На собесе спросят именно об этом.
 
-1. **Опечатки в ключах.** `recived` вместо `received`, `tittle` вместо `title`, `createAt` вместо `createdAt`, `d` вместо `id`, `task` вместо `tasks`, `passswor` вместо `password`. **Реальные баги.**
+1. **Опечатки в ключах.** `recived`, `tittle`, `createAt`, `d` вместо `id`, `task` вместо `tasks`, `passswor`. **Реальные баги.**
 
 2. **Забываешь `return`.** После `res.end()` / `res.json()` — `return`.
 
@@ -289,7 +333,7 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 
 19. **Забываешь `module.exports` в новом модуле.**
 
-20. **Путаешь `snake_case` и `camelCase`.** В SQL — `user_id`, в JS — `userId`. **Правило:** после переименования — `Ctrl+F` по старому имени.
+20. **Путаешь `snake_case` и `camelCase`.** В SQL — `user_id`, в JS — `userId`.
 
 21. **Переименование переменной — не везде.** **Правило:** `F2` в VS Code.
 
@@ -297,11 +341,21 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 
 23. **`Object.keys()` не показывает геттеры.** Обращаться к свойству **напрямую**.
 
-24. **Класс без `new`.** `throw NotFoundError(...)` → TypeError. Имя с большой буквы = класс = нужен `new`.
+24. **Класс без `new`.** `throw NotFoundError(...)` → TypeError.
 
-25. **Обращение к свойству до проверки на undefined.** `user.password_hash` до `if (!user)`. **Паттерн** — уже второй раз.
+25. **Обращение к свойству до проверки на undefined.** `user.password_hash` до `if (!user)`.
 
 26. **`throw` в `catch`.** Работает, но `next(err)` в middleware — читаемее.
+
+27. **Дублирую импорты.** `require` дважды → SyntaxError. **Правило:** все импорты — в начале, один раз.
+
+28. **Забываю импорты в новом файле.** `request is not defined`. **Правило:** сначала импорты, потом логика.
+
+29. **Забываю `Ctrl+S`.** Jest/Node не видят изменений.
+
+30. **`setupFilesAfterEach`** не существует. **Правильно:** `setupFilesAfterEnv`.
+
+31. **Тестовая база не создана** → `database does not exist`. **Правило:** создать базу + прогнать миграции.
 
 ---
 
@@ -315,7 +369,9 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 - [x] ~~Аутентификация (JWT)~~ — сделано
 - [x] ~~Валидация (zod)~~ — сделано
 - [x] ~~Кастомные ошибки~~ — сделано
-- [ ] **Тесты (Jest + Supertest)** — следующий шаг
+- [x] ~~Тесты (Jest + Supertest)~~ — сделано
+- [ ] **Мониторинг и логирование (Winston/Pino)** — следующий шаг
+- [ ] Sentry — отлов ошибок в проде
 - [ ] gRPC
 - [ ] GraphQL
 - [ ] NoSQL (MongoDB) — обзорно
@@ -323,7 +379,6 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 - [ ] Redis (кэширование)
 - [ ] Message Brokers (RabbitMQ, Kafka)
 - [ ] Search Engines (Elasticsearch)
-- [ ] Мониторинг (Winston, Prometheus)
 - [ ] DevOps: Docker, CI/CD, Nginx, Apache, HTTPS, SSH
 - [ ] Архитектура: слои, паттерны, микросервисы
 - [ ] Масштабирование (LB, репликация, шардинг)
@@ -341,6 +396,8 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 - bcrypt: https://www.npmjs.com/package/bcrypt
 - jsonwebtoken: https://www.npmjs.com/package/jsonwebtoken
 - zod: https://zod.dev
+- Jest: https://jestjs.io
+- Supertest: https://www.npmjs.com/package/supertest
 - JWT decoder: https://jwt.io
 - javascript.info: https://learn.javascript.ru
 - Roadmap Backend: https://roadmap.sh/backend
@@ -351,11 +408,11 @@ psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 
 Если этот файл скидывают в новый чат — контекст такой:
 
-- Пользователь учится на fullstack-разработчика, 8 дней опыта с Node.js/Express/PostgreSQL/JWT/zod.
-- Стек: Node.js, Express, PostgreSQL, JWT, bcrypt, zod. Миграции — ручные SQL-файлы. Кастомные ошибки.
+- Пользователь учится на fullstack-разработчика, 9 дней опыта с Node.js/Express/PostgreSQL/JWT/zod/Jest.
+- Стек: Node.js, Express, PostgreSQL, JWT, bcrypt, zod, Jest + Supertest. Миграции — ручные SQL-файлы. Кастомные ошибки. Тестовая база `task_manager_test`.
 - Стиль обучения: **не писать код за него**. Говорить, что делать, давать подсказки, разбирать его код. Только направлять.
 - Пользователь знает Python и JavaScript, имеет небольшой опыт работы (Node.js + React).
 - Цель: найти работу как можно быстрее.
-- Слабые места: **опечатки** (главная проблема), `return`, `async`/`await`, порядок middleware, `;` в SQL, `snake_case` vs `camelCase`, забывает `module.exports`, путает версии библиотек, забывает `new` перед классом, обращается к свойствам до проверки на `undefined`.
+- Слабые места: **опечатки** (главная проблема), `return`, `async`/`await`, порядок middleware, `;` в SQL, `snake_case` vs `camelCase`, забывает `module.exports`, путает версии библиотек, забывает `new` перед классом, обращается к свойствам до проверки на `undefined`, забывает `Ctrl+S`, забывает импорты в новых файлах.
 
 **Формат ответов:** структурированные, с разбором ошибок, без готового кода. Когда он ошибается — объяснять **почему**, а не просто «вот правильно».
