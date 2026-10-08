@@ -1,6 +1,6 @@
-module.exports = (req,res,next) => {
-    console.log(req.method + " " + req.url)
-    next()
-}
+const logger = require('../lib/logger');
 
-
+module.exports = (req, res, next) => {
+    logger.info(`${req.method} ${req.url}`);
+    next();
+};

@@ -1,7 +1,6 @@
 require('dotenv').config({ quiet: true });
 
-process.env.NODE_ENV = 'test';
-process.env.DB_NAME = 'task_manager_test';
+process.env.DB_NAME = process.env.DB_NAME_TEST;
 
 const pool = require('../src/data/db');
 
