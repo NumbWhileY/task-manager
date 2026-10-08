@@ -1,6 +1,6 @@
 # Task Manager — Project Notes
 
-> Контекст для продолжения работы. Стек: Node.js, Express, PostgreSQL, JWT, zod, Jest.
+> Контекст для продолжения работы. Стек: Node.js, Express, PostgreSQL, JWT, zod, Jest, pino.
 > Цель: fullstack-разработчик, поиск работы.
 
 ---
@@ -8,12 +8,12 @@
 ## Что это за проект
 
 `task-manager` — REST API для управления задачами. Учебный проект, который эволюционирует:
-PostgreSQL → аутентификация → валидация → кастомные ошибки → тесты → WebSocket → фронтенд на Next.js.
+PostgreSQL → аутентификация → валидация → кастомные ошибки → тесты → логирование → Docker → фронтенд на Next.js.
 
-**Текущий статус:** день 9 завершён (07.10.2026). CRUD работает на PostgreSQL,
+**Текущий статус:** день 10 завершён (09.10.2026). CRUD работает на PostgreSQL,
 аутентификация через JWT, роуты защищены, задачи привязаны к пользователям,
-валидация через `zod`, кастомные ошибки, **18 тестов** (unit + integration).
-Следующий шаг — мониторинг (Winston/Pino).
+валидация через `zod`, кастомные ошибки, **18 тестов** (unit + integration),
+структурное логирование через `pino`. Следующий шаг — Docker.
 
 ---
 
@@ -33,6 +33,8 @@ JavaScript Intensive/
     ├── src/
     │   ├── app.js              ← сборка Express: middleware + роуты
     │   ├── server.js           ← запуск: app.listen(3001)
+    │   ├── lib/
+    │   │   └── logger.js       ← pino-логгер (dev/prod/test)
     │   ├── data/
     │   │   ├── db.js           ← пул соединений с PostgreSQL
     │   │   ├── users.js        ← работа с users (findByEmail, create, findById)
@@ -47,28 +49,31 @@ JavaScript Intensive/
     │   │   ├── auth.js         ← POST /auth/register, POST /auth/login
     │   │   └── tasks.js        ← 5 роутов /tasks (защищены auth)
     │   └── middlewares/
-    │       ├── logger.js       ← логирование каждого запроса
+    │       ├── logger.js       ← logger.info для каждого запроса
     │       ├── notFound.js     ← 404 в конце
     │       ├── auth.js         ← проверка JWT → req.user
     │       ├── validate.js     ← универсальный validate(schema)
-    │       └── errorHandler.js ← обработка ошибок (statusCode)
+    │       └── errorHandler.js ← обработка ошибок (statusCode) через logger.error
     ├── tests/                  ← тесты
+    │   ├── env.js              ← NODE_ENV='test' (setupFiles)
     │   ├── setup.js            ← setup/teardown (beforeEach, afterAll)
     │   ├── task.test.js        ← 8 unit-тестов для data/tasks.js
     │   ├── auth.test.js        ← 7 integration-тестов для /auth/*
     │   └── routes.test.js      ← 3 integration-теста для /tasks
-    ├── jest.config.js          ← конфиг Jest
+    ├── jest.config.js          ← конфиг Jest (setupFiles, setupFilesAfterEnv, maxWorkers:1)
     ├── .env                    ← секреты (НЕ в Git): DB_*, DB_NAME_TEST, JWT_SECRET
     ├── package.json
     └── .gitignore
 ```
 
-**Git:** единый репозиторий в корне `JavaScript Intensive`. Семнадцать коммитов:
+**Git:** единый репозиторий в корне `JavaScript Intensive`. Двадцать коммитов:
+- `61b568f` Day 10: structured logging with pino
+- `Update notes after Day 10`
+- `4e25f22` Update notes after Day 9
 - `13be1c0` Day 9: Jest + Supertest tests (unit + integration)
-- `Update notes after Day 9`
-- `Day 8: custom error classes (NotFoundError, ConflictError, UnauthorizedError)`
-- `Update notes after Day 8`
-- `Update notes after Day 7`
+- `1d1c886` Update notes after Day 8
+- `de641ad` Day 8: custom error classes (NotFoundError, ConflictError, UnauthorizedError)
+- `1bd4545` Update notes after Day 7
 - `0f317be` Day 7: zod validation, universal validate middleware
 - `a9605c9` Update notes after Day 6
 - `3ca6f24` Day 6: JWT authentication, protected routes, user-owned tasks
@@ -113,6 +118,8 @@ psql -U postgres -h localhost -d task_manager_test -f migrations/XXX_name.sql
 - `bcrypt` — хеширование паролей.
 - `jsonwebtoken` — JWT.
 - `zod` 4.6.5 — валидация.
+- `pino` 10.4.0 — структурное логирование.
+- `pino-pretty` 13.2.0 — красивый вывод в dev.
 
 **Dev-зависимости:**
 - `jest` 30.5.2 — тест-фреймворк.
@@ -120,8 +127,8 @@ psql -U postgres -h localhost -d task_manager_test -f migrations/XXX_name.sql
 
 **Скрипты:**
 ```bash
-npm test         # один прогон тестов
-npm run test:watch # следит за файлами
+npm test           # jest --runInBand
+npm run test:watch # jest --watch --runInBand
 ```
 
 ---
@@ -266,32 +273,50 @@ npm run test:watch # следит за файлами
 **Изучено:**
 - **Unit-тест** — одна функция, изолированно.
 - **Integration-тест** — весь поток: HTTP → Express → middleware → data → база.
-- **`Jest`** — тест-фреймворк. Находит `*.test.js`, запускает, отчитывается.
+- **`Jest`** — тест-фреймворк.
 - **`Supertest`** — HTTP-клиент для тестов. `request(app)` — без `listen`.
-- **`jest.config.js`** — `testEnvironment: 'node'`, `testMatch`, `setupFilesAfterEnv`.
-- **`setupFilesAfterEnv`** (не `AfterEach`!) — подключение setup-файла.
+- **`setupFilesAfterEnv`** — подключение setup-файла.
 - **`beforeEach`** — очистка перед каждым тестом.
 - **`afterAll`** — закрытие пула после всех тестов.
 - **`TRUNCATE users RESTART IDENTITY CASCADE`** — очистка + сброс id + каскад.
-- **Тестовая база** — `task_manager_test`, отдельно от `task_manager`.
-- **`NODE_ENV='test'`** — флаг тестового режима.
-- **`--forceExit`** — если Jest не завершается (крайняя мера).
-- **`--detectOpenHandles`** — найти открытые ресурсы.
+- **Тестовая база** — `task_manager_test`.
+- **`--runInBand`** — тесты последовательно.
+- **Параллельные тесты на общей БД** — конфликт.
 
 **Сделано:**
-- `jest.config.js` — конфиг.
-- `tests/setup.js` — setup/teardown.
-- `tests/task.test.js` — 8 unit-тестов для `data/tasks.js`.
-- `tests/auth.test.js` — 7 integration-тестов для `/auth/*`.
-- `tests/routes.test.js` — 3 integration-теста для `/tasks`.
-- `package.json` — `scripts: test, test:watch`.
-- `devDependencies`: `jest`, `supertest`.
-- **Тестовая база** `task_manager_test` + миграции.
+- `jest.config.js`, `tests/setup.js`.
+- `tests/task.test.js` — 8 unit-тестов.
+- `tests/auth.test.js` — 7 integration-тестов.
+- `tests/routes.test.js` — 3 integration-теста.
 - **18 тестов** — все зелёные.
+
+### День 10 — Мониторинг и логирование (pino)
+
+**Изучено:**
+- **`pino`** — структурное логирование. JSON, быстрое.
+- **`pino-pretty`** — красивый вывод для dev.
+- **Уровни:** `debug`, `info`, `warn`, `error`, `silent`.
+- **Транспорты:** pino-pretty в dev, JSON в prod, silent в test.
+- **`NODE_ENV`** — переключение режимов.
+- **`logger.info(msg)`**, **`logger.error(msg, { stack })`**.
+- **Порядок загрузки:** `setupFiles` (до всего) vs `setupFilesAfterEnv` (после env).
+- **`maxWorkers: 1`** — тесты последовательно.
+
+**Сделано:**
+- `src/lib/logger.js` — конфиг pino (3 режима).
+- `middlewares/logger.js` — `logger.info`.
+- `middlewares/errorHandler.js` — `logger.error`.
+- `server.js` — `logger.info`.
+- `tests/env.js` — `NODE_ENV = 'test'`.
+- `jest.config.js` — `setupFiles` + `maxWorkers: 1`.
+- `tests/setup.js` — упрощён.
+- `tests/routes.test.js` — чистый.
+- `package.json` — `--runInBand`.
+- **18 тестов** — чистый вывод, без логов.
 
 ---
 
-## Слабые места (что заметил за 9 дней)
+## Слабые места (что заметил за 10 дней)
 
 Это **важнее** всего остального. На собесе спросят именно об этом.
 
@@ -307,13 +332,13 @@ npm run test:watch # следит за файлами
 
 6. **`app.use(logger())` вместо `app.use(logger)`.**
 
-7. **JSON в curl (PowerShell/cmd).** Двойные кавычки снаружи → `\"` внутри.
+7. **JSON в curl.** Двойные кавычки снаружи → `\"` внутри.
 
-8. **`errorHandler` не последним.** Express ищет **снизу вверх**.
+8. **`errorHandler` не последним.**
 
 9. **Хардкод статуса в errorHandler.** `const status = err.statusCode || err.status || 500`.
 
-10. **Мёртвый `next()` после `return`.** В error-handler не нужен.
+10. **Мёртвый `next()` после `return`.**
 
 11. **Забываешь `async`/`await` в роутах.**
 
@@ -323,39 +348,43 @@ npm run test:watch # следит за файлами
 
 14. **Не перезапускаешь сервер после правок.**
 
-15. **PowerShell пишет в Windows-1251.** Редактируй в VS Code.
+15. **PowerShell пишет в Windows-1251.**
 
-16. **Забываешь `;` в SQL.** `psql` переходит в режим `-#`.
+16. **Забываешь `;` в SQL.**
 
-17. **`UPDATE`/`DELETE` без проверки id.** `UPDATE 0` = ни одна строка.
+17. **`UPDATE`/`DELETE` без проверки id.**
 
-18. **Путаешь `id` пользователей и задач.** Проверяй `SELECT` перед действием.
+18. **Путаешь `id` пользователей и задач.**
 
 19. **Забываешь `module.exports` в новом модуле.**
 
-20. **Путаешь `snake_case` и `camelCase`.** В SQL — `user_id`, в JS — `userId`.
+20. **Путаешь `snake_case` и `camelCase`.**
 
-21. **Переименование переменной — не везде.** **Правило:** `F2` в VS Code.
+21. **Переименование переменной — не везде.**
 
-22. **Путаю версии библиотек.** `zod` 4 изменил API (`errors` → `issues`).
+22. **Путаю версии библиотек.** `zod` 4 — `errors` → `issues`.
 
-23. **`Object.keys()` не показывает геттеры.** Обращаться к свойству **напрямую**.
+23. **`Object.keys()` не показывает геттеры.**
 
-24. **Класс без `new`.** `throw NotFoundError(...)` → TypeError.
+24. **Класс без `new`.**
 
-25. **Обращение к свойству до проверки на undefined.** `user.password_hash` до `if (!user)`.
+25. **Обращение к свойству до проверки на undefined.**
 
-26. **`throw` в `catch`.** Работает, но `next(err)` в middleware — читаемее.
+26. **`throw` в `catch`.**
 
-27. **Дублирую импорты.** `require` дважды → SyntaxError. **Правило:** все импорты — в начале, один раз.
+27. **Дублирую импорты.**
 
-28. **Забываю импорты в новом файле.** `request is not defined`. **Правило:** сначала импорты, потом логика.
+28. **Забываю импорты в новом файле.**
 
-29. **Забываю `Ctrl+S`.** Jest/Node не видят изменений.
+29. **Забываю `Ctrl+S`.**
 
 30. **`setupFilesAfterEach`** не существует. **Правильно:** `setupFilesAfterEnv`.
 
-31. **Тестовая база не создана** → `database does not exist`. **Правило:** создать базу + прогнать миграции.
+31. **Тестовая база не создана** → `database does not exist`.
+
+32. **Хардкод уровня логгера.** `level: 'debug'` вместо переменной.
+
+33. **Неиспользуемые переменные** (`const reg = ...`) — удалять.
 
 ---
 
@@ -370,7 +399,10 @@ npm run test:watch # следит за файлами
 - [x] ~~Валидация (zod)~~ — сделано
 - [x] ~~Кастомные ошибки~~ — сделано
 - [x] ~~Тесты (Jest + Supertest)~~ — сделано
-- [ ] **Мониторинг и логирование (Winston/Pino)** — следующий шаг
+- [x] ~~Мониторинг и логирование (pino)~~ — сделано
+- [ ] **Docker + docker-compose** — следующий шаг
+- [ ] CI/CD (GitHub Actions)
+- [ ] Деплой на VPS + Nginx + HTTPS
 - [ ] Sentry — отлов ошибок в проде
 - [ ] gRPC
 - [ ] GraphQL
@@ -379,7 +411,6 @@ npm run test:watch # следит за файлами
 - [ ] Redis (кэширование)
 - [ ] Message Brokers (RabbitMQ, Kafka)
 - [ ] Search Engines (Elasticsearch)
-- [ ] DevOps: Docker, CI/CD, Nginx, Apache, HTTPS, SSH
 - [ ] Архитектура: слои, паттерны, микросервисы
 - [ ] Масштабирование (LB, репликация, шардинг)
 - [ ] TypeScript
@@ -398,6 +429,7 @@ npm run test:watch # следит за файлами
 - zod: https://zod.dev
 - Jest: https://jestjs.io
 - Supertest: https://www.npmjs.com/package/supertest
+- pino: https://getpino.io
 - JWT decoder: https://jwt.io
 - javascript.info: https://learn.javascript.ru
 - Roadmap Backend: https://roadmap.sh/backend
@@ -408,11 +440,11 @@ npm run test:watch # следит за файлами
 
 Если этот файл скидывают в новый чат — контекст такой:
 
-- Пользователь учится на fullstack-разработчика, 9 дней опыта с Node.js/Express/PostgreSQL/JWT/zod/Jest.
-- Стек: Node.js, Express, PostgreSQL, JWT, bcrypt, zod, Jest + Supertest. Миграции — ручные SQL-файлы. Кастомные ошибки. Тестовая база `task_manager_test`.
+- Пользователь учится на fullstack-разработчика, 10 дней опыта с Node.js/Express/PostgreSQL/JWT/zod/Jest/pino.
+- Стек: Node.js, Express, PostgreSQL, JWT, bcrypt, zod, Jest + Supertest, pino. Миграции — ручные SQL-файлы. Кастомные ошибки. Тестовая база `task_manager_test`.
 - Стиль обучения: **не писать код за него**. Говорить, что делать, давать подсказки, разбирать его код. Только направлять.
 - Пользователь знает Python и JavaScript, имеет небольшой опыт работы (Node.js + React).
 - Цель: найти работу как можно быстрее.
-- Слабые места: **опечатки** (главная проблема), `return`, `async`/`await`, порядок middleware, `;` в SQL, `snake_case` vs `camelCase`, забывает `module.exports`, путает версии библиотек, забывает `new` перед классом, обращается к свойствам до проверки на `undefined`, забывает `Ctrl+S`, забывает импорты в новых файлах.
+- Слабые места: **опечатки** (главная проблема), `return`, `async`/`await`, порядок middleware, `;` в SQL, `snake_case` vs `camelCase`, забывает `module.exports`, путает версии библиотек, забывает `new` перед классом, обращается к свойствам до проверки на `undefined`, забывает `Ctrl+S`, забывает импорты в новых файлах, хардкодит значения.
 
 **Формат ответов:** структурированные, с разбором ошибок, без готового кода. Когда он ошибается — объяснять **почему**, а не просто «вот правильно».
