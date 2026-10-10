@@ -1,6 +1,6 @@
 # Task Manager — Project Notes
 
-> Контекст для продолжения работы. Стек: Node.js, Express, PostgreSQL, JWT, zod, Jest, pino.
+> Контекст для продолжения работы. Стек: Node.js, Express, PostgreSQL, JWT, zod, Jest, pino, Docker.
 > Цель: fullstack-разработчик, поиск работы.
 
 ---
@@ -8,12 +8,13 @@
 ## Что это за проект
 
 `task-manager` — REST API для управления задачами. Учебный проект, который эволюционирует:
-PostgreSQL → аутентификация → валидация → кастомные ошибки → тесты → логирование → Docker → фронтенд на Next.js.
+PostgreSQL → аутентификация → валидация → кастомные ошибки → тесты → логирование → Docker → CI/CD → фронтенд на Next.js.
 
-**Текущий статус:** день 10 завершён (09.10.2026). CRUD работает на PostgreSQL,
+**Текущий статус:** день 11 завершён (10.10.2026). CRUD работает на PostgreSQL,
 аутентификация через JWT, роуты защищены, задачи привязаны к пользователям,
 валидация через `zod`, кастомные ошибки, **18 тестов** (unit + integration),
-структурное логирование через `pino`. Следующий шаг — Docker.
+структурное логирование через `pino`, **Docker + docker-compose** (app + postgres).
+Следующий шаг — CI/CD (GitHub Actions).
 
 ---
 
@@ -60,13 +61,18 @@ JavaScript Intensive/
     │   ├── task.test.js        ← 8 unit-тестов для data/tasks.js
     │   ├── auth.test.js        ← 7 integration-тестов для /auth/*
     │   └── routes.test.js      ← 3 integration-теста для /tasks
+    ├── Dockerfile              ← образ приложения (node:20-alpine)
+    ├── .dockerignore           ← что НЕ копировать в образ
+    ├── docker-compose.yml      ← app + postgres
     ├── jest.config.js          ← конфиг Jest (setupFiles, setupFilesAfterEnv, maxWorkers:1)
     ├── .env                    ← секреты (НЕ в Git): DB_*, DB_NAME_TEST, JWT_SECRET
     ├── package.json
     └── .gitignore
 ```
 
-**Git:** единый репозиторий в корне `JavaScript Intensive`. Двадцать коммитов:
+**Git:** единый репозиторий в корне `JavaScript Intensive`. Двадцать три коммита:
+- `Day 11: Docker + docker-compose (app + postgres)`
+- `Update notes after Day 11`
 - `61b568f` Day 10: structured logging with pino
 - `Update notes after Day 10`
 - `4e25f22` Update notes after Day 9
@@ -105,10 +111,17 @@ JavaScript Intensive/
   - `task_manager_test` — тесты.
 - Подключение: `psql -U postgres -h localhost -d task_manager`.
 
+**Docker:**
+- **Docker Desktop** установлен (WSL 2).
+- **WSL 3.0.1.0** + **Ubuntu**.
+- **Docker version 29.8.2**.
+- **Docker Compose v5.5.1**.
+
 **Миграции:**
 ```bash
 psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
 psql -U postgres -h localhost -d task_manager_test -f migrations/XXX_name.sql
+psql -U postgres -h localhost -p 5433 -d task_manager -f migrations/XXX_name.sql   # Docker
 ```
 
 **Зависимости:**
@@ -129,6 +142,16 @@ psql -U postgres -h localhost -d task_manager_test -f migrations/XXX_name.sql
 ```bash
 npm test           # jest --runInBand
 npm run test:watch # jest --watch --runInBand
+```
+
+**Docker-команды:**
+```bash
+docker build -t task-manager .        # собрать образ
+docker compose up -d                  # запустить app + db
+docker compose ps                     # статус
+docker compose logs app               # логи приложения
+docker compose exec db psql -U postgres -d task_manager -c "SELECT * FROM users;"
+docker compose down                   # остановить + удалить
 ```
 
 ---
@@ -314,9 +337,42 @@ npm run test:watch # jest --watch --runInBand
 - `package.json` — `--runInBand`.
 - **18 тестов** — чистый вывод, без логов.
 
+### День 11 — Docker + docker-compose
+
+**Изучено:**
+- **Docker** — контейнеризация. Образ (image) → контейнер.
+- **`Dockerfile`** — инструкция для сборки образа.
+- **`.dockerignore`** — что НЕ копировать в образ (`node_modules`, `.env`, `tests`).
+- **`docker-compose.yml`** — оркестрация: app + postgres.
+- **`services`** — сервисы в compose.
+- **`build: .`** — собрать образ из `Dockerfile`.
+- **`image: postgres:15-alpine`** — готовый образ с Docker Hub.
+- **`environment`** — переменные окружения.
+- **`volumes`** — сохранение данных между перезапусками.
+- **`healthcheck`** — проверка готовности сервиса.
+- **`depends_on: condition: service_healthy`** — ждать готовности.
+- **`DB_HOST: db`** — имя сервиса как хост (внутри сети Docker).
+- **`ports: "3001:3001"`** — проброс портов.
+- **`docker compose up -d`** — запуск в фоне.
+- **`docker compose ps`** — статус.
+- **`docker compose logs app`** — логи.
+- **`docker compose exec`** — команда внутри контейнера.
+- **`docker compose down`** — остановка + удаление.
+- **Volume** — данные сохраняются между `down` и `up`.
+
+**Сделано:**
+- `Dockerfile` — образ приложения (node:20-alpine).
+- `.dockerignore` — исключения.
+- `docker-compose.yml` — app + postgres.
+- Миграции применены в Docker-БД (`psql -h localhost -p 5433`).
+- API проверен curl-ом — регистрация, логин, задача.
+- Volume — данные сохраняются.
+- **API работает из контейнера** на `localhost:3001`.
+- **БД в контейнере** на порту `5433` (наружу).
+
 ---
 
-## Слабые места (что заметил за 10 дней)
+## Слабые места (что заметил за 11 дней)
 
 Это **важнее** всего остального. На собесе спросят именно об этом.
 
@@ -386,6 +442,12 @@ npm run test:watch # jest --watch --runInBand
 
 33. **Неиспользуемые переменные** (`const reg = ...`) — удалять.
 
+34. **`.dockerfile` с точкой.** Docker не видит. **Правило:** `Dockerfile` — без точки.
+
+35. **PowerShell `curl` — алиас на `Invoke-WebRequest`.** Не работает с `-H`, `-d`. **Правило:** `curl.exe` в PowerShell, `curl` в cmd.
+
+36. **`docker compose` из корня не находит файл.** **Правило:** запускать из папки с `docker-compose.yml`.
+
 ---
 
 ## Что дальше (порядок изучения)
@@ -400,8 +462,8 @@ npm run test:watch # jest --watch --runInBand
 - [x] ~~Кастомные ошибки~~ — сделано
 - [x] ~~Тесты (Jest + Supertest)~~ — сделано
 - [x] ~~Мониторинг и логирование (pino)~~ — сделано
-- [ ] **Docker + docker-compose** — следующий шаг
-- [ ] CI/CD (GitHub Actions)
+- [x] ~~Docker + docker-compose~~ — сделано
+- [ ] **CI/CD (GitHub Actions)** — следующий шаг
 - [ ] Деплой на VPS + Nginx + HTTPS
 - [ ] Sentry — отлов ошибок в проде
 - [ ] gRPC
@@ -430,6 +492,8 @@ npm run test:watch # jest --watch --runInBand
 - Jest: https://jestjs.io
 - Supertest: https://www.npmjs.com/package/supertest
 - pino: https://getpino.io
+- Docker Docs: https://docs.docker.com
+- Docker Compose: https://docs.docker.com/compose/
 - JWT decoder: https://jwt.io
 - javascript.info: https://learn.javascript.ru
 - Roadmap Backend: https://roadmap.sh/backend
@@ -440,11 +504,11 @@ npm run test:watch # jest --watch --runInBand
 
 Если этот файл скидывают в новый чат — контекст такой:
 
-- Пользователь учится на fullstack-разработчика, 10 дней опыта с Node.js/Express/PostgreSQL/JWT/zod/Jest/pino.
-- Стек: Node.js, Express, PostgreSQL, JWT, bcrypt, zod, Jest + Supertest, pino. Миграции — ручные SQL-файлы. Кастомные ошибки. Тестовая база `task_manager_test`.
+- Пользователь учится на fullstack-разработчика, 11 дней опыта с Node.js/Express/PostgreSQL/JWT/zod/Jest/pino/Docker.
+- Стек: Node.js, Express, PostgreSQL, JWT, bcrypt, zod, Jest + Supertest, pino, Docker + docker-compose. Миграции — ручные SQL-файлы. Кастомные ошибки. Тестовая база `task_manager_test`.
 - Стиль обучения: **не писать код за него**. Говорить, что делать, давать подсказки, разбирать его код. Только направлять.
 - Пользователь знает Python и JavaScript, имеет небольшой опыт работы (Node.js + React).
 - Цель: найти работу как можно быстрее.
-- Слабые места: **опечатки** (главная проблема), `return`, `async`/`await`, порядок middleware, `;` в SQL, `snake_case` vs `camelCase`, забывает `module.exports`, путает версии библиотек, забывает `new` перед классом, обращается к свойствам до проверки на `undefined`, забывает `Ctrl+S`, забывает импорты в новых файлах, хардкодит значения.
+- Слабые места: **опечатки** (главная проблема), `return`, `async`/`await`, порядок middleware, `;` в SQL, `snake_case` vs `camelCase`, забывает `module.exports`, путает версии библиотек, забывает `new` перед классом, обращается к свойствам до проверки на `undefined`, забывает `Ctrl+S`, забывает импорты в новых файлах, хардкодит значения, `.dockerfile` с точкой, путает `curl` в PowerShell.
 
 **Формат ответов:** структурированные, с разбором ошибок, без готового кода. Когда он ошибается — объяснять **почему**, а не просто «вот правильно».
