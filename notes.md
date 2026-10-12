@@ -1,6 +1,6 @@
 # Task Manager — Project Notes
 
-> Контекст для продолжения работы. Стек: Node.js, Express, PostgreSQL, JWT, zod, Jest, pino, Docker.
+> Контекст для продолжения работы. Стек: Node.js, Express, PostgreSQL, JWT, zod, Jest, pino, Docker, GitHub Actions.
 > Цель: fullstack-разработчик, поиск работы.
 
 ---
@@ -10,11 +10,12 @@
 `task-manager` — REST API для управления задачами. Учебный проект, который эволюционирует:
 PostgreSQL → аутентификация → валидация → кастомные ошибки → тесты → логирование → Docker → CI/CD → фронтенд на Next.js.
 
-**Текущий статус:** день 11 завершён (10.10.2026). CRUD работает на PostgreSQL,
+**Текущий статус:** день 12 завершён (12.10.2026). CRUD работает на PostgreSQL,
 аутентификация через JWT, роуты защищены, задачи привязаны к пользователям,
 валидация через `zod`, кастомные ошибки, **18 тестов** (unit + integration),
-структурное логирование через `pino`, **Docker + docker-compose** (app + postgres).
-Следующий шаг — CI/CD (GitHub Actions).
+структурное логирование через `pino`, **Docker + docker-compose**, **CI/CD через GitHub Actions**.
+Проект — **на GitHub** с зелёным badge.
+Следующий шаг — деплой на VPS.
 
 ---
 
@@ -22,7 +23,11 @@ PostgreSQL → аутентификация → валидация → каст�
 
 ```
 JavaScript Intensive/
+├── .github/
+│   └── workflows/
+│       └── test.yml            ← CI: тесты на каждый push
 ├── notes.md                    ← этот файл
+├── README.md                   ← с badge CI
 ├── Day 1/
 │   └── taskManager/
 │       └── server.js           ← голый Node.js сервер (для сравнения)
@@ -38,7 +43,7 @@ JavaScript Intensive/
     │   │   └── logger.js       ← pino-логгер (dev/prod/test)
     │   ├── data/
     │   │   ├── db.js           ← пул соединений с PostgreSQL
-    │   │   ├── users.js        ← работа с users (findByEmail, create, findById)
+    │   │   ├── users.js        ← работа с users
     │   │   └── tasks.js        ← CRUD на SQL с привязкой к user_id
     │   ├── errors/
     │   │   ├── AppError.js     ← базовый класс
@@ -54,48 +59,35 @@ JavaScript Intensive/
     │       ├── notFound.js     ← 404 в конце
     │       ├── auth.js         ← проверка JWT → req.user
     │       ├── validate.js     ← универсальный validate(schema)
-    │       └── errorHandler.js ← обработка ошибок (statusCode) через logger.error
-    ├── tests/                  ← тесты
+    │       └── errorHandler.js ← обработка ошибок через logger.error
+    ├── tests/
     │   ├── env.js              ← NODE_ENV='test' (setupFiles)
-    │   ├── setup.js            ← setup/teardown (beforeEach, afterAll)
-    │   ├── task.test.js        ← 8 unit-тестов для data/tasks.js
-    │   ├── auth.test.js        ← 7 integration-тестов для /auth/*
-    │   └── routes.test.js      ← 3 integration-теста для /tasks
-    ├── Dockerfile              ← образ приложения (node:20-alpine)
-    ├── .dockerignore           ← что НЕ копировать в образ
+    │   ├── setup.js            ← setup/teardown
+    │   ├── task.test.js        ← 8 unit-тестов
+    │   ├── auth.test.js        ← 7 integration-тестов
+    │   └── routes.test.js      ← 3 integration-теста
+    ├── Dockerfile              ← образ приложения
+    ├── .dockerignore           ← что НЕ копировать
     ├── docker-compose.yml      ← app + postgres
-    ├── jest.config.js          ← конфиг Jest (setupFiles, setupFilesAfterEnv, maxWorkers:1)
-    ├── .env                    ← секреты (НЕ в Git): DB_*, DB_NAME_TEST, JWT_SECRET
+    ├── jest.config.js
+    ├── .env                    ← секреты (НЕ в Git)
     ├── package.json
     └── .gitignore
 ```
 
-**Git:** единый репозиторий в корне `JavaScript Intensive`. Двадцать три коммита:
+**Git:** репозиторий на GitHub — https://github.com/NumbWhileY/task-manager.
+Двадцать шесть коммитов:
+- `Day 12: add GitHub Actions CI workflow`
+- `Day 12: fix workflows folder name`
+- `Day 12: add README with CI badge`
+- `Update notes after Day 12`
 - `Day 11: Docker + docker-compose (app + postgres)`
 - `Update notes after Day 11`
-- `61b568f` Day 10: structured logging with pino
-- `Update notes after Day 10`
-- `4e25f22` Update notes after Day 9
-- `13be1c0` Day 9: Jest + Supertest tests (unit + integration)
-- `1d1c886` Update notes after Day 8
-- `de641ad` Day 8: custom error classes (NotFoundError, ConflictError, UnauthorizedError)
-- `1bd4545` Update notes after Day 7
-- `0f317be` Day 7: zod validation, universal validate middleware
-- `a9605c9` Update notes after Day 6
-- `3ca6f24` Day 6: JWT authentication, protected routes, user-owned tasks
-- `9afc242` Day 5: migrations, users table, foreign key, JOIN
-- `dd930b9` Update notes after Day 5
-- `634dad0` Update notes after Day 4
-- `e65c36b` Day 4: migrate from in-memory array to PostgreSQL
-- `eecce5a` Add PostgreSQL environment info
-- `bfc1be0` Day 3: CRUD, validateTitle middleware, errorHandler
-- `fa8a2c2` Add project notes for context
-- `422c254` Day 3: full CRUD for tasks with in-memory storage
-- `f2c0818` Day 2: modular structure + disable x-powered-by
-- `482c90f` Days 1-2: raw HTTP server + Express server
+- `Day 10: structured logging with pino`
+- ... (далее по дням)
 
-**Email в Git — исправлен:** `podzorovvvivan@gmail.com`.
-**Осталось:** старые коммиты **с неверным** email — при пуше на GitHub **не свяжутся** с аккаунтом. Если критично — исправить через `git filter-branch` **перед** публикацией.
+**Email в Git — исправлен через `git filter-repo`:** `podzorovvvivan@gmail.com`.
+Все 22 старых коммита переписаны — теперь связаны с GitHub-аккаунтом `NumbWhileY`.
 
 ---
 
@@ -105,38 +97,27 @@ JavaScript Intensive/
 - Путь: `C:\Program Files\PostgreSQL\15\bin`
 - Порт: `5432`.
 - Пользователь: `postgres`.
-- Добавлен в PATH — `psql` работает из любого места.
 - **Две базы:**
   - `task_manager` — разработка.
   - `task_manager_test` — тесты.
-- Подключение: `psql -U postgres -h localhost -d task_manager`.
 
 **Docker:**
-- **Docker Desktop** установлен (WSL 2).
+- **Docker Desktop** (WSL 2).
 - **WSL 3.0.1.0** + **Ubuntu**.
 - **Docker version 29.8.2**.
 - **Docker Compose v5.5.1**.
 
-**Миграции:**
-```bash
-psql -U postgres -h localhost -d task_manager -f migrations/XXX_name.sql
-psql -U postgres -h localhost -d task_manager_test -f migrations/XXX_name.sql
-psql -U postgres -h localhost -p 5433 -d task_manager -f migrations/XXX_name.sql   # Docker
-```
+**GitHub:**
+- **Аккаунт:** `NumbWhileY`.
+- **Репозиторий:** https://github.com/NumbWhileY/task-manager.
+- **CI:** `.github/workflows/test.yml` — запускается на push в `main`.
+- **Status:** зелёный badge `Tests: passing`.
 
-**Зависимости:**
-- `express` — веб-фреймворк.
-- `pg` — PostgreSQL клиент.
-- `dotenv` — переменные окружения.
-- `bcrypt` — хеширование паролей.
-- `jsonwebtoken` — JWT.
-- `zod` 4.6.5 — валидация.
-- `pino` 10.4.0 — структурное логирование.
-- `pino-pretty` 13.2.0 — красивый вывод в dev.
+**Зависимости (prod):**
+- `express`, `pg`, `dotenv`, `bcrypt`, `jsonwebtoken`, `zod`, `pino`, `pino-pretty`.
 
 **Dev-зависимости:**
-- `jest` 30.5.2 — тест-фреймворк.
-- `supertest` 7.3.1 — HTTP-тесты.
+- `jest`, `supertest`.
 
 **Скрипты:**
 ```bash
@@ -146,12 +127,20 @@ npm run test:watch # jest --watch --runInBand
 
 **Docker-команды:**
 ```bash
-docker build -t task-manager .        # собрать образ
-docker compose up -d                  # запустить app + db
-docker compose ps                     # статус
-docker compose logs app               # логи приложения
+docker build -t task-manager .
+docker compose up -d
+docker compose ps
+docker compose logs app
 docker compose exec db psql -U postgres -d task_manager -c "SELECT * FROM users;"
-docker compose down                   # остановить + удалить
+docker compose down
+```
+
+**Git-команды:**
+```bash
+git pull                       # забрать изменения с GitHub
+git push                       # запушить локальные изменения
+git log --oneline              # история
+git remote -v                  # remote
 ```
 
 ---
@@ -163,228 +152,212 @@ docker compose down                   # остановить + удалить
 **Изучено:**
 - Структура HTTP-запроса: стартовая строка → заголовки → пустая строка → тело.
 - Методы: GET, POST, PUT, PATCH, DELETE.
-- Статусы: 2xx успех, 3xx редирект, 4xx клиент, 5xx сервер.
+- Статусы: 2xx, 3xx, 4xx, 5xx.
 - Заголовки: `Content-Type`, `Content-Length`, `Host`, `Authorization`, `Cookie`.
-- HTTP без состояния — каждый запрос независим.
+- HTTP без состояния.
 
 **Сделано:**
 - `Day 1/taskManager/server.js` — HTTP-сервер без фреймворков.
 - Роутинг через `if (req.url === '/' && req.method === 'GET')`.
 - Тело POST через `req.on('data')` / `req.on('end')`.
-- `JSON.parse` в `try/catch` → 400 при невалидном JSON.
-
-**Ключевой инсайт:** Express — это обёртка над тем, что было написано руками.
+- `JSON.parse` в `try/catch` → 400.
 
 ### День 2 — Express + структура
 
 **Изучено:**
-- Middleware — `(req, res, next)`, выполняется между запросом и ответом.
-- Порядок middleware **критичен** — Express идёт сверху вниз.
-- `express.json()` — парсит тело в `req.body`.
-- `express.Router()` — модульные роуты.
-- Middleware передаётся **без скобок**: `app.use(logger)`.
-- `app.disable('x-powered-by')` — не раскрывать стек.
+- Middleware — `(req, res, next)`.
+- Порядок middleware **критичен**.
+- `express.json()`, `express.Router()`.
+- Middleware передаётся **без скобок**.
+- `app.disable('x-powered-by')`.
 
 **Сделано:**
-- Переписал сервер на Express — код короче в 2 раза.
+- Переписал сервер на Express.
 - Разбил на модули: `app.js`, `server.js`, `routes/`, `middlewares/`.
 
 ### День 3 — CRUD + middleware валидации и ошибок
 
 **Изучено:**
-- CRUD — основа любого API.
+- CRUD — основа API.
 - Статусы: 200, 201, 204, 400, 404.
 - **Порядок проверок:** валидация **до** действия.
 - `.json()` для тела, `.end()` для 204.
-- **Middleware валидации** — вынесение проверок из роутов.
-- **Error-handler** — 4 аргумента `(err, req, res, next)`.
-- **DRY** — Don't Repeat Yourself.
+- **Error-handler** — 4 аргумента.
+- **DRY**.
 
 **Сделано:**
-- `src/data/tasks.js` — модуль CRUD.
-- Пять роутов в `src/routes/tasks.js`.
-- `src/middlewares/validateTitle.js`, `errorHandler.js`.
+- `src/data/tasks.js`, 5 роутов, `validateTitle`, `errorHandler`.
 
 ### День 4 — PostgreSQL
 
 **Изучено:**
-- **Пул соединений** (`Pool`) — переиспользование.
-- **`pool.query()`** — без `connect()` для простых запросов.
+- **Пул соединений** (`Pool`).
+- **`pool.query()`**.
 - **Плейсхолдеры** `$1`, `$2` — защита от SQL-инъекций.
-- **`RETURNING *`** — возврат строки после INSERT/UPDATE/DELETE.
-- **`async`/`await` по всей цепочке.**
-- **`.env` + `dotenv`** — секреты вне кода.
+- **`RETURNING *`**.
+- **`async`/`await`** по цепочке.
+- **`.env` + `dotenv`**.
 
 **Сделано:**
 - База `task_manager`, таблица `tasks`.
-- `src/data/db.js` — пул соединений.
-- `data/tasks.js` — пять функций на SQL. **Массив удалён.**
+- `src/data/db.js`.
+- `data/tasks.js` — SQL. **Массив удалён.**
 
 ### День 5 — Миграции и связи
 
 **Изучено:**
-- **Миграции** — SQL-файлы, применяются через `psql -f`.
+- **Миграции** — SQL-файлы через `psql -f`.
 - **`IF NOT EXISTS`** — идемпотентность.
-- **`UNIQUE`** — запрет дубликатов (email).
+- **`UNIQUE`** — дубликаты (email).
 - **Foreign key** — `REFERENCES users(id)`.
-- **`ON DELETE CASCADE`** — каскадное удаление.
-- **`JOIN` vs `LEFT JOIN`** — совпадения vs все строки левой таблицы.
+- **`ON DELETE CASCADE`**.
+- **`JOIN` vs `LEFT JOIN`**.
 
 **Сделано:**
 - `migrations/001-003`.
-- Таблица `users`: `id`, `email UNIQUE`, `password_hash`, `created_at`.
-- `tasks.user_id` — foreign key на `users(id)` с `CASCADE`.
+- `users`: `id`, `email UNIQUE`, `password_hash`, `created_at`.
+- `tasks.user_id` — FK на `users(id)` с `CASCADE`.
 
 ### День 6 — Аутентификация (JWT)
 
 **Изучено:**
-- **`bcrypt`:** `hash(password, 10)`, `compare(password, hash)`. Медленный специально.
-- **`jsonwebtoken`:** `sign(payload, secret, { expiresIn })`, `verify(token, secret)`.
-- **JWT:** `header.payload.signature`. Payload **читается**, но **не подделывается**.
-- **Middleware `auth`:** `Bearer <token>` → `jwt.verify` → `req.user = { userId }`.
-- **Безопасность:** одинаковые сообщения об ошибках.
+- **`bcrypt`:** `hash(password, 10)`, `compare()`.
+- **`jsonwebtoken`:** `sign()`, `verify()`.
+- **JWT:** `header.payload.signature`.
+- **Middleware `auth`:** `Bearer <token>` → `jwt.verify` → `req.user`.
+- **Одинаковые сообщения** об ошибках.
 - **Защита от чужих данных:** `WHERE id = $1 AND user_id = $2`.
-- **404 вместо 403:** не подсказывать, что чужая задача существует.
+- **404 вместо 403**.
 
 **Сделано:**
 - `data/users.js`, `routes/auth.js`, `middlewares/auth.js`.
 - `data/tasks.js` — все функции с `user_id`.
 - `routes/tasks.js` — все роуты защищены `auth`.
-- `JWT_SECRET` в `.env`.
 
 ### День 7 — Валидация через zod
 
 **Изучено:**
-- **`zod`** — декларативная валидация. Схемы описывают правила в одном месте.
-- **`z.object({...})`** — объект-схема.
+- **`zod`** — декларативная валидация.
+- **`z.object({...})`**.
 - **Цепочки:** `z.string().trim().min(1).max(255)`.
-- **`.trim()` перед `.min()`** — иначе `'   '` пройдёт проверку.
-- **`safeParse()`** — не бросает, возвращает `{ success, data | error }`.
-- **`result.error.issues`** — в `zod` 4.x (было `errors` в 3.x).
-- **Универсальный middleware** — фабрика `(schema) => (req, res, next)`.
-- **`req.body = result.data`** — замена на очищенные данные.
+- **`.trim()` перед `.min()`**.
+- **`safeParse()`**.
+- **`result.error.issues`** — в `zod` 4.x.
+- **Универсальный middleware** — `(schema) => (req, res, next)`.
+- **`req.body = result.data`**.
 
 **Сделано:**
-- `src/schemas/auth.js` — `registerSchema`, `loginSchema`.
-- `src/schemas/task.js` — `taskSchema`.
-- `src/middlewares/validate.js` — универсальный middleware.
-- `routes/auth.js` — `validate(registerSchema)` и `validate(loginSchema)`.
-- `routes/tasks.js` — `validate(taskSchema)` вместо `validateTitle`.
-- **Удалён** `middlewares/validateTitle.js`.
+- `src/schemas/auth.js`, `src/schemas/task.js`.
+- `src/middlewares/validate.js`.
+- Замена `validateTitle` на `validate(taskSchema)`.
 
 ### День 8 — Кастомные ошибки
 
 **Изучено:**
-- **`class AppError extends Error`** — базовый класс. `super(message)`, `this.statusCode`, `this.isOperational`.
-- **`Error.captureStackTrace(this, this.constructor)`** — чистый стек.
+- **`class AppError extends Error`**.
+- **`statusCode`, `isOperational`**.
 - **Наследники:** `NotFoundError` (404), `ValidationError` (400), `UnauthorizedError` (401), `ConflictError` (409).
-- **`throw new NotFoundError(...)`** в async-роутах — Express 5 ловит.
-- **`next(new UnauthorizedError(...))`** в middleware — работает во всех версиях.
-- **`err.statusCode || err.status || 500`** — оба случая покрыты.
-- **`isOperational`** — флаг «ожидаемая ошибка» vs «баг».
+- **`throw new NotFoundError(...)`** в async-роутах.
+- **`next(new UnauthorizedError(...))`** в middleware.
+- **`err.statusCode || err.status || 500`**.
 
 **Сделано:**
-- `src/errors/AppError.js` — базовый класс.
-- `src/errors/index.js` — `NotFoundError`, `ValidationError`, `UnauthorizedError`, `ConflictError`.
-- `middlewares/errorHandler.js` — читает `statusCode`.
-- `routes/tasks.js` — `throw new NotFoundError(...)`.
-- `routes/auth.js` — `throw new ConflictError(...)`, `throw new UnauthorizedError(...)`.
-- `middlewares/auth.js` — `next(new UnauthorizedError(...))`.
+- `src/errors/AppError.js`, `src/errors/index.js`.
+- `errorHandler.js` — читает `statusCode`.
+- Роуты — `throw new ...`.
 
 ### День 9 — Тесты (Jest + Supertest)
 
 **Изучено:**
-- **Unit-тест** — одна функция, изолированно.
-- **Integration-тест** — весь поток: HTTP → Express → middleware → data → база.
-- **`Jest`** — тест-фреймворк.
-- **`Supertest`** — HTTP-клиент для тестов. `request(app)` — без `listen`.
-- **`setupFilesAfterEnv`** — подключение setup-файла.
-- **`beforeEach`** — очистка перед каждым тестом.
-- **`afterAll`** — закрытие пула после всех тестов.
-- **`TRUNCATE users RESTART IDENTITY CASCADE`** — очистка + сброс id + каскад.
-- **Тестовая база** — `task_manager_test`.
-- **`--runInBand`** — тесты последовательно.
+- **Unit-тест** vs **Integration-тест**.
+- **`Jest`** — фреймворк.
+- **`Supertest`** — HTTP-клиент для тестов.
+- **`setupFilesAfterEnv`**.
+- **`beforeEach`**, **`afterAll`**.
+- **`TRUNCATE users RESTART IDENTITY CASCADE`**.
+- **`--runInBand`** — последовательно.
 - **Параллельные тесты на общей БД** — конфликт.
 
 **Сделано:**
 - `jest.config.js`, `tests/setup.js`.
-- `tests/task.test.js` — 8 unit-тестов.
-- `tests/auth.test.js` — 7 integration-тестов.
-- `tests/routes.test.js` — 3 integration-теста.
-- **18 тестов** — все зелёные.
+- 8 unit + 7 integration (auth) + 3 integration (routes) = **18 тестов**.
 
-### День 10 — Мониторинг и логирование (pino)
+### День 10 — Логирование (pino)
 
 **Изучено:**
-- **`pino`** — структурное логирование. JSON, быстрое.
+- **`pino`** — структурное логирование.
 - **`pino-pretty`** — красивый вывод для dev.
 - **Уровни:** `debug`, `info`, `warn`, `error`, `silent`.
 - **Транспорты:** pino-pretty в dev, JSON в prod, silent в test.
-- **`NODE_ENV`** — переключение режимов.
-- **`logger.info(msg)`**, **`logger.error(msg, { stack })`**.
-- **Порядок загрузки:** `setupFiles` (до всего) vs `setupFilesAfterEnv` (после env).
-- **`maxWorkers: 1`** — тесты последовательно.
+- **`NODE_ENV`** — переключение.
+- **`setupFiles`** vs **`setupFilesAfterEnv`**.
+- **`maxWorkers: 1`**.
 
 **Сделано:**
 - `src/lib/logger.js` — конфиг pino (3 режима).
-- `middlewares/logger.js` — `logger.info`.
-- `middlewares/errorHandler.js` — `logger.error`.
-- `server.js` — `logger.info`.
-- `tests/env.js` — `NODE_ENV = 'test'`.
-- `jest.config.js` — `setupFiles` + `maxWorkers: 1`.
-- `tests/setup.js` — упрощён.
-- `tests/routes.test.js` — чистый.
-- `package.json` — `--runInBand`.
-- **18 тестов** — чистый вывод, без логов.
+- `middlewares/logger.js`, `errorHandler.js`, `server.js` — заменены.
+- `tests/env.js` — `NODE_ENV='test'`.
+- 18 тестов — чистый вывод.
 
 ### День 11 — Docker + docker-compose
 
 **Изучено:**
-- **Docker** — контейнеризация. Образ (image) → контейнер.
-- **`Dockerfile`** — инструкция для сборки образа.
-- **`.dockerignore`** — что НЕ копировать в образ (`node_modules`, `.env`, `tests`).
-- **`docker-compose.yml`** — оркестрация: app + postgres.
-- **`services`** — сервисы в compose.
-- **`build: .`** — собрать образ из `Dockerfile`.
-- **`image: postgres:15-alpine`** — готовый образ с Docker Hub.
-- **`environment`** — переменные окружения.
-- **`volumes`** — сохранение данных между перезапусками.
-- **`healthcheck`** — проверка готовности сервиса.
-- **`depends_on: condition: service_healthy`** — ждать готовности.
-- **`DB_HOST: db`** — имя сервиса как хост (внутри сети Docker).
-- **`ports: "3001:3001"`** — проброс портов.
-- **`docker compose up -d`** — запуск в фоне.
-- **`docker compose ps`** — статус.
-- **`docker compose logs app`** — логи.
-- **`docker compose exec`** — команда внутри контейнера.
-- **`docker compose down`** — остановка + удаление.
-- **Volume** — данные сохраняются между `down` и `up`.
+- **Docker** — образ, контейнер.
+- **`Dockerfile`** — `FROM`, `WORKDIR`, `COPY`, `RUN`, `EXPOSE`, `CMD`.
+- **`.dockerignore`** — `node_modules`, `.env`, `tests`.
+- **`docker-compose.yml`** — `services`, `build`, `image`, `environment`, `volumes`, `healthcheck`, `depends_on`, `ports`.
+- **`DB_HOST: db`** — имя сервиса как хост.
+- **`docker compose up -d`, `ps`, `logs`, `exec`, `down`**.
+- **Volume** — данные сохраняются.
 
 **Сделано:**
-- `Dockerfile` — образ приложения (node:20-alpine).
-- `.dockerignore` — исключения.
-- `docker-compose.yml` — app + postgres.
-- Миграции применены в Docker-БД (`psql -h localhost -p 5433`).
-- API проверен curl-ом — регистрация, логин, задача.
-- Volume — данные сохраняются.
-- **API работает из контейнера** на `localhost:3001`.
-- **БД в контейнере** на порту `5433` (наружу).
+- `Dockerfile`, `.dockerignore`, `docker-compose.yml`.
+- Миграции применены в Docker-БД.
+- API проверен curl-ом.
+- Volume — работает.
+
+### День 12 — CI/CD (GitHub Actions)
+
+**Изучено:**
+- **GitHub Actions** — CI/CD прямо в GitHub.
+- **`.github/workflows/*.yml`** — папка с workflows (с `s`!).
+- **`on: push/pull_request`** — триггеры.
+- **`jobs.<name>`** — задачи.
+- **`runs-on: ubuntu-latest`** — среда.
+- **`services.postgres`** — PostgreSQL как service container.
+- **`working-directory`** — папка для команд.
+- **`actions/checkout@v4`**, **`actions/setup-node@v4`** — готовые actions.
+- **`cache: 'npm'`** — кэш зависимостей.
+- **`env:`** — переменные окружения для шага.
+- **Badge** в README — ссылка на статус workflow.
+- **`git pull`** — синхронизация локального с удалённым.
+- **`git filter-repo`** — перезапись email в истории.
+- **`git remote add origin`** — связать локальный с GitHub.
+
+**Сделано:**
+- Репозиторий на GitHub — https://github.com/NumbWhileY/task-manager.
+- **22** коммита **перезаписаны** через `git filter-repo` — email правильный.
+- Первый push — 22 коммита на GitHub.
+- `.github/workflows/test.yml` — CI workflow.
+- Прогон тестов на каждый push в `main`.
+- README с badge (создан через GitHub UI).
+- Первый CI-прогон — **Success** за 41 секунду.
 
 ---
 
-## Слабые места (что заметил за 11 дней)
+## Слабые места (что заметил за 12 дней)
 
 Это **важнее** всего остального. На собесе спросят именно об этом.
 
-1. **Опечатки в ключах.** `recived`, `tittle`, `createAt`, `d` вместо `id`, `task` вместо `tasks`, `passswor`. **Реальные баги.**
+1. **Опечатки в ключах.** `recived`, `tittle`, `createAt`, `d` вместо `id`, `task` вместо `tasks`, `passswor`.
 
-2. **Забываешь `return`.** После `res.end()` / `res.json()` — `return`.
+2. **Забываешь `return`.** После `res.end()` / `res.json()`.
 
 3. **Порядок проверок.** Валидация — всегда **первой**.
 
-4. **Middleware без `next`.** `(req, res)` вместо `(req, res, next)`.
+4. **Middleware без `next`.**
 
-5. **Порядок middleware в `app.js`.** `json` → `logger` → роуты → `notFound` → `errorHandler`.
+5. **Порядок middleware в `app.js`.**
 
 6. **`app.use(logger())` вместо `app.use(logger)`.**
 
@@ -392,7 +365,7 @@ docker compose down                   # остановить + удалить
 
 8. **`errorHandler` не последним.**
 
-9. **Хардкод статуса в errorHandler.** `const status = err.statusCode || err.status || 500`.
+9. **Хардкод статуса в errorHandler.**
 
 10. **Мёртвый `next()` после `return`.**
 
@@ -438,33 +411,37 @@ docker compose down                   # остановить + удалить
 
 31. **Тестовая база не создана** → `database does not exist`.
 
-32. **Хардкод уровня логгера.** `level: 'debug'` вместо переменной.
+32. **Хардкод уровня логгера.**
 
-33. **Неиспользуемые переменные** (`const reg = ...`) — удалять.
+33. **Неиспользуемые переменные** (`const reg = ...`).
 
 34. **`.dockerfile` с точкой.** Docker не видит. **Правило:** `Dockerfile` — без точки.
 
-35. **PowerShell `curl` — алиас на `Invoke-WebRequest`.** Не работает с `-H`, `-d`. **Правило:** `curl.exe` в PowerShell, `curl` в cmd.
+35. **PowerShell `curl` — алиас на `Invoke-WebRequest`.** **Правило:** `curl.exe` в PowerShell, `curl` в cmd.
 
-36. **`docker compose` из корня не находит файл.** **Правило:** запускать из папки с `docker-compose.yml`.
+36. **`docker compose` из корня не находит файл.**
+
+37. **`workflow` vs `workflows`.** Папка — `.github/workflows/` (с `s`). Опечатка → Actions не видит файл.
+
+38. **README можно создать прямо на GitHub** — не обязательно локально.
 
 ---
 
 ## Что дальше (порядок изучения)
 
-- [x] ~~HTTP + Node.js~~ — сделано
-- [x] ~~Express + структура~~ — сделано
-- [x] ~~CRUD + middleware~~ — сделано
-- [x] ~~PostgreSQL — замена массива~~ — сделано
-- [x] ~~Миграции и связи~~ — сделано
-- [x] ~~Аутентификация (JWT)~~ — сделано
-- [x] ~~Валидация (zod)~~ — сделано
-- [x] ~~Кастомные ошибки~~ — сделано
-- [x] ~~Тесты (Jest + Supertest)~~ — сделано
-- [x] ~~Мониторинг и логирование (pino)~~ — сделано
-- [x] ~~Docker + docker-compose~~ — сделано
-- [ ] **CI/CD (GitHub Actions)** — следующий шаг
-- [ ] Деплой на VPS + Nginx + HTTPS
+- [x] ~~HTTP + Node.js~~
+- [x] ~~Express + структура~~
+- [x] ~~CRUD + middleware~~
+- [x] ~~PostgreSQL~~
+- [x] ~~Миграции и связи~~
+- [x] ~~Аутентификация (JWT)~~
+- [x] ~~Валидация (zod)~~
+- [x] ~~Кастомные ошибки~~
+- [x] ~~Тесты (Jest + Supertest)~~
+- [x] ~~Логирование (pino)~~
+- [x] ~~Docker + docker-compose~~
+- [x] ~~CI/CD (GitHub Actions)~~
+- [ ] **Деплой на VPS + Nginx + HTTPS** — следующий шаг
 - [ ] Sentry — отлов ошибок в проде
 - [ ] gRPC
 - [ ] GraphQL
@@ -494,6 +471,8 @@ docker compose down                   # остановить + удалить
 - pino: https://getpino.io
 - Docker Docs: https://docs.docker.com
 - Docker Compose: https://docs.docker.com/compose/
+- GitHub Actions: https://docs.github.com/en/actions
+- git-filter-repo: https://github.com/newren/git-filter-repo
 - JWT decoder: https://jwt.io
 - javascript.info: https://learn.javascript.ru
 - Roadmap Backend: https://roadmap.sh/backend
@@ -504,11 +483,12 @@ docker compose down                   # остановить + удалить
 
 Если этот файл скидывают в новый чат — контекст такой:
 
-- Пользователь учится на fullstack-разработчика, 11 дней опыта с Node.js/Express/PostgreSQL/JWT/zod/Jest/pino/Docker.
-- Стек: Node.js, Express, PostgreSQL, JWT, bcrypt, zod, Jest + Supertest, pino, Docker + docker-compose. Миграции — ручные SQL-файлы. Кастомные ошибки. Тестовая база `task_manager_test`.
+- Пользователь учится на fullstack-разработчика, 12 дней опыта с Node.js/Express/PostgreSQL/JWT/zod/Jest/pino/Docker/GitHub Actions.
+- Стек: Node.js, Express, PostgreSQL, JWT, bcrypt, zod, Jest + Supertest, pino, Docker + docker-compose, GitHub Actions. Миграции — ручные SQL-файлы. Кастомные ошибки. Тестовая база `task_manager_test`.
+- Репозиторий на GitHub — `NumbWhileY/task-manager`. CI зелёный.
 - Стиль обучения: **не писать код за него**. Говорить, что делать, давать подсказки, разбирать его код. Только направлять.
 - Пользователь знает Python и JavaScript, имеет небольшой опыт работы (Node.js + React).
 - Цель: найти работу как можно быстрее.
-- Слабые места: **опечатки** (главная проблема), `return`, `async`/`await`, порядок middleware, `;` в SQL, `snake_case` vs `camelCase`, забывает `module.exports`, путает версии библиотек, забывает `new` перед классом, обращается к свойствам до проверки на `undefined`, забывает `Ctrl+S`, забывает импорты в новых файлах, хардкодит значения, `.dockerfile` с точкой, путает `curl` в PowerShell.
+- Слабые места: **опечатки** (главная проблема), `return`, `async`/`await`, порядок middleware, `;` в SQL, `snake_case` vs `camelCase`, забывает `module.exports`, путает версии библиотек, забывает `new` перед классом, обращается к свойствам до проверки на `undefined`, забывает `Ctrl+S`, забывает импорты в новых файлах, хардкодит значения, `.dockerfile` с точкой, путает `curl` в PowerShell, опечатка `workflow`/`workflows`.
 
 **Формат ответов:** структурированные, с разбором ошибок, без готового кода. Когда он ошибается — объяснять **почему**, а не просто «вот правильно».
