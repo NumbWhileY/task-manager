@@ -1,6 +1,6 @@
 # Task Manager — Project Notes
 
-> Контекст для продолжения работы. Стек: Node.js, Express, PostgreSQL, JWT, zod, Jest, pino, Docker, GitHub Actions.
+> Контекст для продолжения работы. Стек: Node.js, Express, TypeScript, PostgreSQL, JWT, zod, Jest, pino, Docker, GitHub Actions.
 > Цель: fullstack-разработчик, поиск работы.
 
 ---
@@ -10,12 +10,13 @@
 `task-manager` — REST API для управления задачами. Учебный проект, который эволюционирует:
 PostgreSQL → аутентификация → валидация → кастомные ошибки → тесты → логирование → Docker → CI/CD → TypeScript → фронтенд на Next.js → WebSocket → Redis → деплой.
 
-**Текущий статус:** день 12 завершён (12.10.2026). CRUD работает на PostgreSQL,
+**Текущий статус:** день 13 завершён (17.10.2026). CRUD работает на PostgreSQL,
 аутентификация через JWT, роуты защищены, задачи привязаны к пользователям,
 валидация через `zod`, кастомные ошибки, **18 тестов** (unit + integration),
-структурное логирование через `pino`, **Docker + docker-compose**, **CI/CD через GitHub Actions**.
+структурное логирование через `pino`, **Docker + docker-compose**, **CI/CD через GitHub Actions**,
+**весь бэкенд на TypeScript**.
 Проект — **на GitHub** с зелёным badge.
-Следующий шаг — TypeScript.
+Следующий шаг — Frontend (Next.js).
 
 ---
 
@@ -25,7 +26,7 @@ PostgreSQL → аутентификация → валидация → каст�
 JavaScript Intensive/
 ├── .github/
 │   └── workflows/
-│       └── test.yml            ← CI: тесты на каждый push
+│       └── test.yml            ← CI: typecheck + тесты
 ├── notes.md                    ← этот файл
 ├── README.md                   ← с badge CI
 ├── Day 1/
@@ -37,57 +38,60 @@ JavaScript Intensive/
     │   ├── 002_create_users.sql
     │   └── 003_add_user_id_to_tasks.sql
     ├── src/
-    │   ├── app.js              ← сборка Express: middleware + роуты
-    │   ├── server.js           ← запуск: app.listen(3001)
+    │   ├── app.ts              ← сборка Express: middleware + роуты
+    │   ├── server.ts           ← запуск: app.listen(3001)
     │   ├── lib/
-    │   │   └── logger.js       ← pino-логгер (dev/prod/test)
+    │   │   └── logger.ts       ← pino-логгер (dev/prod/test)
     │   ├── data/
-    │   │   ├── db.js           ← пул соединений с PostgreSQL
-    │   │   ├── users.js        ← работа с users
-    │   │   └── tasks.js        ← CRUD на SQL с привязкой к user_id
+    │   │   ├── db.ts           ← пул соединений с PostgreSQL
+    │   │   ├── users.ts        ← работа с users (findByEmail, create, findById)
+    │   │   └── tasks.ts        ← CRUD на SQL с привязкой к user_id
     │   ├── errors/
-    │   │   ├── AppError.js     ← базовый класс
-    │   │   └── index.js        ← NotFoundError, ValidationError, UnauthorizedError, ConflictError
+    │   │   ├── AppError.ts     ← базовый класс
+    │   │   └── index.ts        ← NotFoundError, ValidationError, UnauthorizedError, ConflictError
     │   ├── schemas/
-    │   │   ├── auth.js         ← registerSchema, loginSchema
-    │   │   └── task.js         ← taskSchema
+    │   │   ├── auth.ts         ← registerSchema, loginSchema + z.infer
+    │   │   └── task.ts         ← taskSchema + z.infer
     │   ├── routes/
-    │   │   ├── auth.js         ← POST /auth/register, POST /auth/login
-    │   │   └── tasks.js        ← 5 роутов /tasks (защищены auth)
+    │   │   ├── auth.ts         ← POST /auth/register, POST /auth/login
+    │   │   └── tasks.ts        ← 5 роутов /tasks (защищены auth)
     │   └── middlewares/
-    │       ├── logger.js       ← logger.info для каждого запроса
-    │       ├── notFound.js     ← 404 в конце
-    │       ├── auth.js         ← проверка JWT → req.user
-    │       ├── validate.js     ← универсальный validate(schema)
-    │       └── errorHandler.js ← обработка ошибок через logger.error
+    │       ├── logger.ts       ← logger.info для каждого запроса
+    │       ├── notFound.ts     ← 404 в конце
+    │       ├── auth.ts         ← проверка JWT → req.user
+    │       ├── validate.ts     ← универсальный validate(schema)
+    │       └── errorHandler.ts ← обработка ошибок через logger.error
     ├── tests/
     │   ├── env.js              ← NODE_ENV='test' (setupFiles)
     │   ├── setup.js            ← setup/teardown
     │   ├── task.test.js        ← 8 unit-тестов
     │   ├── auth.test.js        ← 7 integration-тестов
     │   └── routes.test.js      ← 3 integration-теста
-    ├── Dockerfile              ← образ приложения
-    ├── .dockerignore           ← что НЕ копировать
-    ├── docker-compose.yml      ← app + postgres
+    ├── tsconfig.json           ← конфиг TS (node16, strict)
+    ├── .swcrc                  ← конфиг SWC (трансформация для Jest)
     ├── jest.config.js
+    ├── Dockerfile              ← двухэтапная сборка (builder + runtime)
+    ├── .dockerignore
+    ├── docker-compose.yml      ← app + postgres
     ├── .env                    ← секреты (НЕ в Git)
     ├── package.json
     └── .gitignore
 ```
 
 **Git:** репозиторий на GitHub — https://github.com/NumbWhileY/task-manager.
-Двадцать шесть коммитов:
+Двадцать восемь коммитов:
+- `Day 13: migrate to TypeScript`
+- `Day 13 Quick debug`
+- `Update notes after Day 13`
 - `Day 12: add GitHub Actions CI workflow`
 - `Day 12: fix workflows folder name`
 - `Day 12: add README with CI badge`
 - `Update notes after Day 12`
 - `Day 11: Docker + docker-compose (app + postgres)`
-- `Update notes after Day 11`
-- `Day 10: structured logging with pino`
 - ... (далее по дням)
 
 **Email в Git — исправлен через `git filter-repo`:** `podzorovvvivan@gmail.com`.
-Все 22 старых коммита переписаны — теперь связаны с GitHub-аккаунтом `NumbWhileY`.
+Все коммиты связаны с GitHub-аккаунтом `NumbWhileY`.
 
 ---
 
@@ -110,19 +114,23 @@ JavaScript Intensive/
 **GitHub:**
 - **Аккаунт:** `NumbWhileY`.
 - **Репозиторий:** https://github.com/NumbWhileY/task-manager.
-- **CI:** `.github/workflows/test.yml` — запускается на push в `main`.
+- **CI:** `.github/workflows/test.yml` — typecheck + тесты на push в `main`.
 - **Status:** зелёный badge `Tests: passing`.
 
 **Зависимости (prod):**
 - `express`, `pg`, `dotenv`, `bcrypt`, `jsonwebtoken`, `zod`, `pino`, `pino-pretty`.
 
 **Dev-зависимости:**
-- `jest`, `supertest`.
+- `jest`, `supertest`, `typescript` 7.0.2, `tsx`, `@types/*`, `@swc/jest`, `@swc/core`.
 
 **Скрипты:**
 ```bash
 npm test           # jest --runInBand
 npm run test:watch # jest --watch --runInBand
+npm run typecheck  # tsc --noEmit
+npm run build      # tsc
+npm run dev        # tsx watch src/server.ts
+npm start          # node dist/server.js
 ```
 
 **Docker-команды:**
@@ -343,9 +351,33 @@ git remote -v                  # remote
 - README с badge (создан через GitHub UI).
 - Первый CI-прогон — **Success** за 41 секунду.
 
+### День 13 — TypeScript
+
+**Изучено:**
+- **TypeScript** — JavaScript + типы.
+- **`tsconfig.json`** — `target`, `module`, `strict`, `outDir`, `rootDir`.
+- **TS 7**: `moduleResolution: "node"` → `"node16"`. `module` тоже `node16`.
+- **`@types/*`** — типы для Express, pg, bcrypt, jsonwebtoken.
+- **`tsx`** — запуск TS без компиляции.
+- **`ts-jest`** — несовместим с TS 7. Заменили на **`@swc/jest`**.
+- **`.swcrc`** — конфиг SWC.
+- **`interface`**, **`Promise<T>`**, **`z.infer<typeof schema>`**.
+- **`strict: true`** — ошибка при `any` без явного указания.
+- **`req: any, res: any`** — временно, пока типы Express 5 сломаны.
+
+**Сделано:**
+- `tsconfig.json`, `@swc/jest`, `.swcrc`.
+- Все файлы в `src/` — `.ts`.
+- `interface Task`, `interface User`.
+- `z.infer` — типы из схем.
+- CI — `typecheck` добавлен в workflow.
+- Dockerfile — двухэтапная сборка.
+- 18 тестов — зелёные.
+- CI — зелёный.
+
 ---
 
-## Слабые места (что заметил за 12 дней)
+## Слабые места (что заметил за 13 дней)
 
 Это **важнее** всего остального. На собесе спросят именно об этом.
 
@@ -425,6 +457,20 @@ git remote -v                  # remote
 
 38. **README можно создать прямо на GitHub** — не обязательно локально.
 
+39. **TS 7 — breaking changes.** `moduleResolution: "node"` удалён. **Правило:** при ошибке TS — проверять версию и документацию.
+
+40. **`ts-jest` + TS 7** — несовместимо. **Правило:** использовать `@swc/jest`.
+
+41. **`export default` vs `module.exports`** — не смешивать в CommonJS-проекте.
+
+42. **Типы Express 5 сломаны.** `res.status` — `number`. **Правило:** `any` для `req`/`res`/`next` временно.
+
+43. **`import` без расширения.** С `allowJs: true` — ищет `.ts`, `.js`. **Правило:** без `.js` в импортах своих модулей.
+
+44. **`git commit` без `-m`** — ошибка `pathspec`. **Правило:** всегда `git commit -m "..."`.
+
+45. **TS `strict: true`** — ошибка при `any` без явного указания. **Правило:** `req: any, res: any` явно.
+
 ---
 
 ## Что дальше (порядок изучения)
@@ -441,8 +487,8 @@ git remote -v                  # remote
 - [x] ~~Логирование (pino)~~
 - [x] ~~Docker + docker-compose~~
 - [x] ~~CI/CD (GitHub Actions)~~
-- [ ] **TypeScript** — следующий шаг
-- [ ] **Frontend (Next.js)**
+- [x] ~~TypeScript~~
+- [ ] **Frontend (Next.js)** — следующий шаг
 - [ ] **WebSocket** — real-time
 - [ ] **Redis** — кэширование
 - [ ] Message Brokers (RabbitMQ, Kafka)
@@ -473,6 +519,9 @@ git remote -v                  # remote
 - Docker Compose: https://docs.docker.com/compose/
 - GitHub Actions: https://docs.github.com/en/actions
 - git-filter-repo: https://github.com/newren/git-filter-repo
+- TypeScript: https://www.typescriptlang.org/docs
+- SWC: https://swc.rs
+- @swc/jest: https://swc.rs/docs/usage/jest
 - JWT decoder: https://jwt.io
 - javascript.info: https://learn.javascript.ru
 - Roadmap Backend: https://roadmap.sh/backend
@@ -483,13 +532,13 @@ git remote -v                  # remote
 
 Если этот файл скидывают в новый чат — контекст такой:
 
-- Пользователь учится на fullstack-разработчика, 12 дней опыта с Node.js/Express/PostgreSQL/JWT/zod/Jest/pino/Docker/GitHub Actions.
-- Стек: Node.js, Express, PostgreSQL, JWT, bcrypt, zod, Jest + Supertest, pino, Docker + docker-compose, GitHub Actions. Миграции — ручные SQL-файлы. Кастомные ошибки. Тестовая база `task_manager_test`.
+- Пользователь учится на fullstack-разработчика, 13 дней опыта с Node.js/Express/TypeScript/PostgreSQL/JWT/zod/Jest/pino/Docker/GitHub Actions.
+- Стек: Node.js, Express, TypeScript, PostgreSQL, JWT, bcrypt, zod, Jest + Supertest, pino, Docker + docker-compose, GitHub Actions. Миграции — ручные SQL-файлы. Кастомные ошибки. Тестовая база `task_manager_test`.
 - Репозиторий на GitHub — `NumbWhileY/task-manager`. CI зелёный.
-- **Порядок изучения:** TypeScript → Frontend (Next.js) → WebSocket → Redis → деплой в самом конце.
+- **Порядок изучения:** Frontend (Next.js) → WebSocket → Redis → ... → деплой в самом конце.
 - Стиль обучения: **не писать код за него**. Говорить, что делать, давать подсказки, разбирать его код. Только направлять.
 - Пользователь знает Python и JavaScript, имеет небольшой опыт работы (Node.js + React).
 - Цель: найти работу как можно быстрее.
-- Слабые места: **опечатки** (главная проблема), `return`, `async`/`await`, порядок middleware, `;` в SQL, `snake_case` vs `camelCase`, забывает `module.exports`, путает версии библиотек, забывает `new` перед классом, обращается к свойствам до проверки на `undefined`, забывает `Ctrl+S`, забывает импорты в новых файлах, хардкодит значения, `.dockerfile` с точкой, путает `curl` в PowerShell, опечатка `workflow`/`workflows`.
+- Слабые места: **опечатки** (главная проблема), `return`, `async`/`await`, порядок middleware, `;` в SQL, `snake_case` vs `camelCase`, забывает `module.exports`, путает версии библиотек, забывает `new` перед классом, обращается к свойствам до проверки на `undefined`, забывает `Ctrl+S`, забывает импорты в новых файлах, хардкодит значения, `.dockerfile` с точкой, путает `curl` в PowerShell, опечатка `workflow`/`workflows`, TS 7 breaking changes, `ts-jest` несовместим с TS 7, `export default` vs `module.exports`, типы Express 5 сломаны.
 
 **Формат ответов:** структурированные, с разбором ошибок, без готового кода. Когда он ошибается — объяснять **почему**, а не просто «вот правильно».
