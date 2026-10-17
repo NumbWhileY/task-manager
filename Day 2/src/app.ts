@@ -9,7 +9,7 @@ const errorHandler = require('./middlewares/errorHandler');
 app.disable('x-powered-by');
 app.use(express.json())
 app.use(logger)
-app.get('/', (req, res) => {
+app.get('/', (req: any, res:any) => {
     res.json({ message: 'Hello world' });
 });
 app.use('/tasks', tasksRouter);
