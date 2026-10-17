@@ -1,5 +1,5 @@
 const express = require('express')
-const logger = require('./middlewares/logger.js')
+const logger = require('./middlewares/logger')
 const app = express()
 const tasksRouter = require('./routes/tasks');
 const authRouter = require('./routes/auth');

@@ -8,14 +8,14 @@
 ## Что это за проект
 
 `task-manager` — REST API для управления задачами. Учебный проект, который эволюционирует:
-PostgreSQL → аутентификация → валидация → кастомные ошибки → тесты → логирование → Docker → CI/CD → фронтенд на Next.js.
+PostgreSQL → аутентификация → валидация → кастомные ошибки → тесты → логирование → Docker → CI/CD → TypeScript → фронтенд на Next.js → WebSocket → Redis → деплой.
 
 **Текущий статус:** день 12 завершён (12.10.2026). CRUD работает на PostgreSQL,
 аутентификация через JWT, роуты защищены, задачи привязаны к пользователям,
 валидация через `zod`, кастомные ошибки, **18 тестов** (unit + integration),
 структурное логирование через `pino`, **Docker + docker-compose**, **CI/CD через GitHub Actions**.
 Проект — **на GitHub** с зелёным badge.
-Следующий шаг — деплой на VPS.
+Следующий шаг — TypeScript.
 
 ---
 
@@ -441,19 +441,19 @@ git remote -v                  # remote
 - [x] ~~Логирование (pino)~~
 - [x] ~~Docker + docker-compose~~
 - [x] ~~CI/CD (GitHub Actions)~~
-- [ ] **Деплой на VPS + Nginx + HTTPS** — следующий шаг
+- [ ] **TypeScript** — следующий шаг
+- [ ] **Frontend (Next.js)**
+- [ ] **WebSocket** — real-time
+- [ ] **Redis** — кэширование
+- [ ] Message Brokers (RabbitMQ, Kafka)
+- [ ] Search Engines (Elasticsearch)
 - [ ] Sentry — отлов ошибок в проде
 - [ ] gRPC
 - [ ] GraphQL
-- [ ] NoSQL (MongoDB) — обзорно
-- [ ] WebSocket
-- [ ] Redis (кэширование)
-- [ ] Message Brokers (RabbitMQ, Kafka)
-- [ ] Search Engines (Elasticsearch)
+- [ ] NoSQL (MongoDB)
 - [ ] Архитектура: слои, паттерны, микросервисы
 - [ ] Масштабирование (LB, репликация, шардинг)
-- [ ] TypeScript
-- [ ] Next.js + фронтенд
+- [ ] **Деплой на VPS + Nginx + HTTPS** — финал
 
 ---
 
@@ -486,6 +486,7 @@ git remote -v                  # remote
 - Пользователь учится на fullstack-разработчика, 12 дней опыта с Node.js/Express/PostgreSQL/JWT/zod/Jest/pino/Docker/GitHub Actions.
 - Стек: Node.js, Express, PostgreSQL, JWT, bcrypt, zod, Jest + Supertest, pino, Docker + docker-compose, GitHub Actions. Миграции — ручные SQL-файлы. Кастомные ошибки. Тестовая база `task_manager_test`.
 - Репозиторий на GitHub — `NumbWhileY/task-manager`. CI зелёный.
+- **Порядок изучения:** TypeScript → Frontend (Next.js) → WebSocket → Redis → деплой в самом конце.
 - Стиль обучения: **не писать код за него**. Говорить, что делать, давать подсказки, разбирать его код. Только направлять.
 - Пользователь знает Python и JavaScript, имеет небольшой опыт работы (Node.js + React).
 - Цель: найти работу как можно быстрее.

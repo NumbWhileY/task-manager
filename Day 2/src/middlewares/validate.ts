@@ -1,4 +1,7 @@
-module.exports = (schema) => (req, res, next) => {
+import { ZodSchema } from "zod/v3";
+import { Request, Response, NextFunction } from 'express';
+
+module.exports = (schema: ZodSchema) => (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.body)
 
     if(!result.success) {

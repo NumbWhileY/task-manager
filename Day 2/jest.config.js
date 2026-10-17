@@ -4,5 +4,9 @@ module.exports = {
     setupFiles: ['<rootDir>/tests/env.js'],
     setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
     verbose: true,
-    maxWorkers: 1
+    maxWorkers: 1,
+    transform: {
+        '^.+\\.(t|j)sx?$': '@swc/jest',
+    },
+    moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
 };

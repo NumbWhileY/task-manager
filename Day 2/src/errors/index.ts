@@ -1,4 +1,4 @@
-const AppError = require("./AppError")
+import AppError from './AppError';
 
 class NotFoundError extends AppError {
     constructor(message = 'Не найдено') {
@@ -26,4 +26,4 @@ class ConflictError extends AppError {
     }
 }
 
-module.exports = { AppError, NotFoundError, ValidationError, UnauthorizedError, ConflictError };
+export { AppError, NotFoundError, ValidationError, UnauthorizedError, ConflictError };
