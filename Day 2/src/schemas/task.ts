@@ -1,8 +1,10 @@
-const { z } = require('zod')
-
+import { z } from 'zod';
 
 const taskSchema = z.object({
-    title: z.string().trim().min(1,'title обязателен').max(255,'title максимум 255 символов')
+    title: z.string().trim().min(1, 'title обязателен').max(255, 'Максимум 255 символов'),
+    description: z.string().trim().max(1000, 'Максимум 1000 символов').optional(),
 });
 
-module.exports = {taskSchema}
+export type TaskInput = z.infer<typeof taskSchema>;
+
+export { taskSchema };

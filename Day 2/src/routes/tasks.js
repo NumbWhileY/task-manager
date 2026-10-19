@@ -25,8 +25,7 @@ router.get('/:id',auth,async (req,res) => {
 
 router.post('/',auth,validate(taskSchema),async(req,res) => {
 
-    const task = await tasksData.create(req.body.title,req.user.userId)
-
+    const task = await tasksData.create(req.body.title, req.user.userId, req.body.description);
     return res.status(201).json(task)
 
 })
@@ -34,8 +33,7 @@ router.post('/',auth,validate(taskSchema),async(req,res) => {
 
 router.put('/:id',auth,validate(taskSchema),async(req,res) => {
 
-    const task = await tasksData.update(req.params.id, req.body.title,req.user.userId);
-
+    const task = await tasksData.update(req.params.id, req.body.title, req.user.userId, req.body.description);
     if (!task) throw new NotFoundError('Задача не найдена');
 
     return res.status(200).json(task);
