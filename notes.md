@@ -1,22 +1,22 @@
 # Task Manager — Project Notes
 
-> Контекст для продолжения работы. Стек: Node.js, Express, TypeScript, PostgreSQL, JWT, zod, Jest, pino, Docker, GitHub Actions.
+> Контекст для продолжения работы. Стек: Node.js, Express, TypeScript, PostgreSQL, JWT, zod, Jest, pino, Docker, GitHub Actions, Next.js.
 > Цель: fullstack-разработчик, поиск работы.
 
 ---
 
 ## Что это за проект
 
-`task-manager` — REST API для управления задачами. Учебный проект, который эволюционирует:
+`task-manager` — Fullstack-приложение для управления задачами. Учебный проект, который эволюционирует:
 PostgreSQL → аутентификация → валидация → кастомные ошибки → тесты → логирование → Docker → CI/CD → TypeScript → фронтенд на Next.js → WebSocket → Redis → деплой.
 
-**Текущий статус:** день 13 завершён (17.10.2026). CRUD работает на PostgreSQL,
+**Текущий статус:** день 14 завершён (19.10.2026). CRUD работает на PostgreSQL,
 аутентификация через JWT, роуты защищены, задачи привязаны к пользователям,
 валидация через `zod`, кастомные ошибки, **18 тестов** (unit + integration),
 структурное логирование через `pino`, **Docker + docker-compose**, **CI/CD через GitHub Actions**,
-**весь бэкенд на TypeScript**.
+**весь бэкенд на TypeScript**, **фронтенд на Next.js 16** (логин, регистрация, CRUD задач).
 Проект — **на GitHub** с зелёным badge.
-Следующий шаг — Frontend (Next.js).
+Следующий шаг — WebSocket (real-time).
 
 ---
 
@@ -32,123 +32,81 @@ JavaScript Intensive/
 ├── Day 1/
 │   └── taskManager/
 │       └── server.js           ← голый Node.js сервер (для сравнения)
-└── Day 2/                      ← основной проект
+└── Day 2/                      ← основной проект (бэкенд)
     ├── migrations/             ← SQL-миграции
     │   ├── 001_create_tasks.sql
     │   ├── 002_create_users.sql
-    │   └── 003_add_user_id_to_tasks.sql
+    │   ├── 003_add_user_id_to_tasks.sql
+    │   └── 004_add_description_to_tasks.sql
     ├── src/
-    │   ├── app.ts              ← сборка Express: middleware + роуты
+    │   ├── app.ts              ← сборка Express
     │   ├── server.ts           ← запуск: app.listen(3001)
     │   ├── lib/
-    │   │   └── logger.ts       ← pino-логгер (dev/prod/test)
+    │   │   └── logger.ts       ← pino-логгер
     │   ├── data/
-    │   │   ├── db.ts           ← пул соединений с PostgreSQL
-    │   │   ├── users.ts        ← работа с users (findByEmail, create, findById)
-    │   │   └── tasks.ts        ← CRUD на SQL с привязкой к user_id
-    │   ├── errors/
-    │   │   ├── AppError.ts     ← базовый класс
-    │   │   └── index.ts        ← NotFoundError, ValidationError, UnauthorizedError, ConflictError
-    │   ├── schemas/
-    │   │   ├── auth.ts         ← registerSchema, loginSchema + z.infer
-    │   │   └── task.ts         ← taskSchema + z.infer
-    │   ├── routes/
-    │   │   ├── auth.ts         ← POST /auth/register, POST /auth/login
-    │   │   └── tasks.ts        ← 5 роутов /tasks (защищены auth)
-    │   └── middlewares/
-    │       ├── logger.ts       ← logger.info для каждого запроса
-    │       ├── notFound.ts     ← 404 в конце
-    │       ├── auth.ts         ← проверка JWT → req.user
-    │       ├── validate.ts     ← универсальный validate(schema)
-    │       └── errorHandler.ts ← обработка ошибок через logger.error
-    ├── tests/
-    │   ├── env.js              ← NODE_ENV='test' (setupFiles)
-    │   ├── setup.js            ← setup/teardown
-    │   ├── task.test.js        ← 8 unit-тестов
-    │   ├── auth.test.js        ← 7 integration-тестов
-    │   └── routes.test.js      ← 3 integration-теста
-    ├── tsconfig.json           ← конфиг TS (node16, strict)
-    ├── .swcrc                  ← конфиг SWC (трансформация для Jest)
+    │   │   ├── db.ts           ← пул соединений
+    │   │   ├── users.ts        ← работа с users
+    │   │   └── tasks.ts        ← CRUD на SQL (с description)
+    │   ├── errors/             ← AppError, NotFound, Validation, etc.
+    │   ├── schemas/            ← zod-схемы (auth, task)
+    │   ├── routes/             ← auth.ts, tasks.ts
+    │   └── middlewares/        ← logger, notFound, auth, validate, errorHandler
+    ├── tests/                  ← 18 тестов (Jest + Supertest)
+    ├── frontend/               ← Next.js 16 (TypeScript, Tailwind 4)
+    │   ├── src/
+    │   │   ├── app/
+    │   │   │   ├── login/page.tsx
+    │   │   │   ├── register/page.tsx
+    │   │   │   ├── page.tsx    ← список задач + форма создания + удаление
+    │   │   │   ├── layout.tsx
+    │   │   │   └── globals.css
+    │   │   └── lib/
+    │   │       └── api.ts      ← API-клиент (fetch)
+    │   ├── next.config.ts      ← rewrites на localhost:3001
+    │   ├── postcss.config.mjs  ← Tailwind 4
+    │   └── package.json
+    ├── tsconfig.json
+    ├── .swcrc
     ├── jest.config.js
-    ├── Dockerfile              ← двухэтапная сборка (builder + runtime)
-    ├── .dockerignore
-    ├── docker-compose.yml      ← app + postgres
-    ├── .env                    ← секреты (НЕ в Git)
-    ├── package.json
-    └── .gitignore
+    ├── Dockerfile
+    ├── docker-compose.yml
+    └── .env
 ```
 
 **Git:** репозиторий на GitHub — https://github.com/NumbWhileY/task-manager.
-Двадцать восемь коммитов:
-- `Day 13: migrate to TypeScript`
-- `Day 13 Quick debug`
-- `Update notes after Day 13`
-- `Day 12: add GitHub Actions CI workflow`
-- `Day 12: fix workflows folder name`
-- `Day 12: add README with CI badge`
-- `Update notes after Day 12`
-- `Day 11: Docker + docker-compose (app + postgres)`
-- ... (далее по дням)
-
+Тридцать коммитов (включая `Day 14`).
 **Email в Git — исправлен через `git filter-repo`:** `podzorovvvivan@gmail.com`.
-Все коммиты связаны с GitHub-аккаунтом `NumbWhileY`.
 
 ---
 
 ## Окружение
 
-- **PostgreSQL 15.19** установлен локально.
-- Путь: `C:\Program Files\PostgreSQL\15\bin`
-- Порт: `5432`.
-- Пользователь: `postgres`.
-- **Две базы:**
-  - `task_manager` — разработка.
-  - `task_manager_test` — тесты.
+- **PostgreSQL 15.19** — `task_manager` (разработка), `task_manager_test` (тесты).
+- **Docker Desktop** (WSL 2), Docker 29.8.2, Compose 5.5.1.
+- **Node.js 20**, TypeScript 7.0.2, Next.js 16.4.2.
+- **GitHub Actions** — CI зелёный.
 
-**Docker:**
-- **Docker Desktop** (WSL 2).
-- **WSL 3.0.1.0** + **Ubuntu**.
-- **Docker version 29.8.2**.
-- **Docker Compose v5.5.1**.
+**Зависимости (prod):** express, pg, dotenv, bcrypt, jsonwebtoken, zod, pino, pino-pretty.
+**Dev-зависимости:** jest, supertest, typescript, tsx, @types/*, @swc/jest, @swc/core.
+**Frontend:** next, react, react-dom, tailwindcss, @tailwindcss/postcss.
 
-**GitHub:**
-- **Аккаунт:** `NumbWhileY`.
-- **Репозиторий:** https://github.com/NumbWhileY/task-manager.
-- **CI:** `.github/workflows/test.yml` — typecheck + тесты на push в `main`.
-- **Status:** зелёный badge `Tests: passing`.
-
-**Зависимости (prod):**
-- `express`, `pg`, `dotenv`, `bcrypt`, `jsonwebtoken`, `zod`, `pino`, `pino-pretty`.
-
-**Dev-зависимости:**
-- `jest`, `supertest`, `typescript` 7.0.2, `tsx`, `@types/*`, `@swc/jest`, `@swc/core`.
-
-**Скрипты:**
+**Скрипты (бэкенд):**
 ```bash
 npm test           # jest --runInBand
-npm run test:watch # jest --watch --runInBand
 npm run typecheck  # tsc --noEmit
-npm run build      # tsc
 npm run dev        # tsx watch src/server.ts
-npm start          # node dist/server.js
+```
+
+**Скрипты (фронтенд):**
+```bash
+npm run dev        # next dev (без Turbopack)
 ```
 
 **Docker-команды:**
 ```bash
-docker build -t task-manager .
 docker compose up -d
 docker compose ps
-docker compose logs app
-docker compose exec db psql -U postgres -d task_manager -c "SELECT * FROM users;"
 docker compose down
-```
-
-**Git-команды:**
-```bash
-git pull                       # забрать изменения с GitHub
-git push                       # запушить локальные изменения
-git log --oneline              # история
-git remote -v                  # remote
 ```
 
 ---
@@ -158,17 +116,14 @@ git remote -v                  # remote
 ### День 1 — HTTP + голый Node.js
 
 **Изучено:**
-- Структура HTTP-запроса: стартовая строка → заголовки → пустая строка → тело.
-- Методы: GET, POST, PUT, PATCH, DELETE.
-- Статусы: 2xx, 3xx, 4xx, 5xx.
-- Заголовки: `Content-Type`, `Content-Length`, `Host`, `Authorization`, `Cookie`.
+- Структура HTTP-запроса и ответа.
+- Методы, статусы, заголовки.
 - HTTP без состояния.
 
 **Сделано:**
 - `Day 1/taskManager/server.js` — HTTP-сервер без фреймворков.
 - Роутинг через `if (req.url === '/' && req.method === 'GET')`.
 - Тело POST через `req.on('data')` / `req.on('end')`.
-- `JSON.parse` в `try/catch` → 400.
 
 ### День 2 — Express + структура
 
@@ -177,7 +132,6 @@ git remote -v                  # remote
 - Порядок middleware **критичен**.
 - `express.json()`, `express.Router()`.
 - Middleware передаётся **без скобок**.
-- `app.disable('x-powered-by')`.
 
 **Сделано:**
 - Переписал сервер на Express.
@@ -375,101 +329,82 @@ git remote -v                  # remote
 - 18 тестов — зелёные.
 - CI — зелёный.
 
+### День 14 — Frontend (Next.js)
+
+**Изучено:**
+- **Next.js 16** — App Router, TypeScript, Tailwind 4.
+- **Turbopack** — баг с Tailwind 4 (классы `flex` игнорируются). **Решение:** отключить (`"dev": "next dev"`).
+- **`postcss.config.mjs`** + `@tailwindcss/postcss` — обязательны для Tailwind 4.
+- **`next.config.ts`** — `rewrites` для прокси на `localhost:3001` (обход CORS).
+- **`'use client'`** — клиентские компоненты (хуки, события).
+- **`useRouter`** — редиректы.
+- **`localStorage`** — хранение JWT.
+- **`type` import** — `import { type Task }` для типов.
+
+**Сделано:**
+- `frontend/` — Next.js проект.
+- `lib/api.ts` — API-клиент.
+- `app/login/page.tsx` — логин.
+- `app/register/page.tsx` — регистрация.
+- `app/page.tsx` — список задач (CRUD).
+- Бэкенд: миграция `004`, `description` в схеме, `data/tasks.ts`, роуты.
+- 18 тестов — зелёные.
+- CI — зелёный.
+
 ---
 
-## Слабые места (что заметил за 13 дней)
+## Слабые места (что заметил за 14 дней)
 
 Это **важнее** всего остального. На собесе спросят именно об этом.
 
 1. **Опечатки в ключах.** `recived`, `tittle`, `createAt`, `d` вместо `id`, `task` вместо `tasks`, `passswor`.
-
 2. **Забываешь `return`.** После `res.end()` / `res.json()`.
-
 3. **Порядок проверок.** Валидация — всегда **первой**.
-
 4. **Middleware без `next`.**
-
 5. **Порядок middleware в `app.js`.**
-
 6. **`app.use(logger())` вместо `app.use(logger)`.**
-
 7. **JSON в curl.** Двойные кавычки снаружи → `\"` внутри.
-
 8. **`errorHandler` не последним.**
-
 9. **Хардкод статуса в errorHandler.**
-
 10. **Мёртвый `next()` после `return`.**
-
 11. **Забываешь `async`/`await` в роутах.**
-
 12. **Возвращаешь `result`, а не `result.rows`.**
-
 13. **`pool.connect()` вместо `pool.query()`.**
-
 14. **Не перезапускаешь сервер после правок.**
-
 15. **PowerShell пишет в Windows-1251.**
-
 16. **Забываешь `;` в SQL.**
-
 17. **`UPDATE`/`DELETE` без проверки id.**
-
 18. **Путаешь `id` пользователей и задач.**
-
 19. **Забываешь `module.exports` в новом модуле.**
-
 20. **Путаешь `snake_case` и `camelCase`.**
-
 21. **Переименование переменной — не везде.**
-
 22. **Путаю версии библиотек.** `zod` 4 — `errors` → `issues`.
-
 23. **`Object.keys()` не показывает геттеры.**
-
 24. **Класс без `new`.**
-
 25. **Обращение к свойству до проверки на undefined.**
-
 26. **`throw` в `catch`.**
-
 27. **Дублирую импорты.**
-
 28. **Забываю импорты в новом файле.**
-
 29. **Забываю `Ctrl+S`.**
-
 30. **`setupFilesAfterEach`** не существует. **Правильно:** `setupFilesAfterEnv`.
-
 31. **Тестовая база не создана** → `database does not exist`.
-
 32. **Хардкод уровня логгера.**
-
 33. **Неиспользуемые переменные** (`const reg = ...`).
-
 34. **`.dockerfile` с точкой.** Docker не видит. **Правило:** `Dockerfile` — без точки.
-
 35. **PowerShell `curl` — алиас на `Invoke-WebRequest`.** **Правило:** `curl.exe` в PowerShell, `curl` в cmd.
-
 36. **`docker compose` из корня не находит файл.**
-
-37. **`workflow` vs `workflows`.** Папка — `.github/workflows/` (с `s`). Опечатка → Actions не видит файл.
-
+37. **`workflow` vs `workflows`.** Папка — `.github/workflows/` (с `s`).
 38. **README можно создать прямо на GitHub** — не обязательно локально.
-
-39. **TS 7 — breaking changes.** `moduleResolution: "node"` удалён. **Правило:** при ошибке TS — проверять версию и документацию.
-
+39. **TS 7 — breaking changes.** `moduleResolution: "node"` удалён.
 40. **`ts-jest` + TS 7** — несовместимо. **Правило:** использовать `@swc/jest`.
-
 41. **`export default` vs `module.exports`** — не смешивать в CommonJS-проекте.
-
-42. **Типы Express 5 сломаны.** `res.status` — `number`. **Правило:** `any` для `req`/`res`/`next` временно.
-
-43. **`import` без расширения.** С `allowJs: true` — ищет `.ts`, `.js`. **Правило:** без `.js` в импортах своих модулей.
-
-44. **`git commit` без `-m`** — ошибка `pathspec`. **Правило:** всегда `git commit -m "..."`.
-
-45. **TS `strict: true`** — ошибка при `any` без явного указания. **Правило:** `req: any, res: any` явно.
+42. **Типы Express 5 сломаны.** `res.status` — `number`. **Правило:** `any` временно.
+43. **`import` без расширения.** **Правило:** без `.js` в импортах своих модулей.
+44. **`git commit` без `-m`** — ошибка `pathspec`.
+45. **TS `strict: true`** — ошибка при `any` без явного указания.
+46. **Next.js 16 + Turbopack** — баг с Tailwind 4. **Правило:** отключить Turbopack.
+47. **`@tailwindcss/postcss`** — не установился автоматом. **Правило:** проверить `postcss.config.mjs`.
+48. **`type` import в Next.js** — `import { type Task }`. **Правило:** типы — с `type`.
 
 ---
 
@@ -488,8 +423,8 @@ git remote -v                  # remote
 - [x] ~~Docker + docker-compose~~
 - [x] ~~CI/CD (GitHub Actions)~~
 - [x] ~~TypeScript~~
-- [ ] **Frontend (Next.js)** — следующий шаг
-- [ ] **WebSocket** — real-time
+- [x] ~~Frontend (Next.js)~~
+- [ ] **WebSocket** — real-time (следующий шаг)
 - [ ] **Redis** — кэширование
 - [ ] Message Brokers (RabbitMQ, Kafka)
 - [ ] Search Engines (Elasticsearch)
@@ -520,8 +455,9 @@ git remote -v                  # remote
 - GitHub Actions: https://docs.github.com/en/actions
 - git-filter-repo: https://github.com/newren/git-filter-repo
 - TypeScript: https://www.typescriptlang.org/docs
+- Next.js: https://nextjs.org/docs
+- Tailwind CSS: https://tailwindcss.com/docs
 - SWC: https://swc.rs
-- @swc/jest: https://swc.rs/docs/usage/jest
 - JWT decoder: https://jwt.io
 - javascript.info: https://learn.javascript.ru
 - Roadmap Backend: https://roadmap.sh/backend
@@ -532,13 +468,13 @@ git remote -v                  # remote
 
 Если этот файл скидывают в новый чат — контекст такой:
 
-- Пользователь учится на fullstack-разработчика, 13 дней опыта с Node.js/Express/TypeScript/PostgreSQL/JWT/zod/Jest/pino/Docker/GitHub Actions.
-- Стек: Node.js, Express, TypeScript, PostgreSQL, JWT, bcrypt, zod, Jest + Supertest, pino, Docker + docker-compose, GitHub Actions. Миграции — ручные SQL-файлы. Кастомные ошибки. Тестовая база `task_manager_test`.
+- Пользователь учится на fullstack-разработчика, 14 дней опыта с Node.js/Express/TypeScript/PostgreSQL/JWT/zod/Jest/pino/Docker/GitHub Actions/Next.js.
+- Стек: Node.js, Express, TypeScript, PostgreSQL, JWT, bcrypt, zod, Jest + Supertest, pino, Docker + docker-compose, GitHub Actions, Next.js 16 (App Router, Tailwind 4).
 - Репозиторий на GitHub — `NumbWhileY/task-manager`. CI зелёный.
-- **Порядок изучения:** Frontend (Next.js) → WebSocket → Redis → ... → деплой в самом конце.
+- **Порядок изучения:** WebSocket → Redis → ... → деплой в самом конце.
 - Стиль обучения: **не писать код за него**. Говорить, что делать, давать подсказки, разбирать его код. Только направлять.
 - Пользователь знает Python и JavaScript, имеет небольшой опыт работы (Node.js + React).
 - Цель: найти работу как можно быстрее.
-- Слабые места: **опечатки** (главная проблема), `return`, `async`/`await`, порядок middleware, `;` в SQL, `snake_case` vs `camelCase`, забывает `module.exports`, путает версии библиотек, забывает `new` перед классом, обращается к свойствам до проверки на `undefined`, забывает `Ctrl+S`, забывает импорты в новых файлах, хардкодит значения, `.dockerfile` с точкой, путает `curl` в PowerShell, опечатка `workflow`/`workflows`, TS 7 breaking changes, `ts-jest` несовместим с TS 7, `export default` vs `module.exports`, типы Express 5 сломаны.
+- Слабые места: **опечатки**, `return`, `async`/`await`, порядок middleware, `;` в SQL, `snake_case` vs `camelCase`, забывает `module.exports`, путает версии библиотек, забывает `new` перед классом, обращается к свойствам до проверки на `undefined`, забывает `Ctrl+S`, забывает импорты, хардкодит значения, `.dockerfile` с точкой, путает `curl` в PowerShell, опечатка `workflow`/`workflows`, TS 7 breaking changes, `ts-jest` несовместим с TS 7, `export default` vs `module.exports`, типы Express 5 сломаны, Turbopack + Tailwind 4, `type` import.
 
 **Формат ответов:** структурированные, с разбором ошибок, без готового кода. Когда он ошибается — объяснять **почему**, а не просто «вот правильно».
