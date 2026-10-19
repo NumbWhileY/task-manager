@@ -48,6 +48,7 @@ jobs:
           psql -h localhost -U postgres -d task_manager_test -f migrations/001_create_tasks.sql
           psql -h localhost -U postgres -d task_manager_test -f migrations/002_create_users.sql
           psql -h localhost -U postgres -d task_manager_test -f migrations/003_add_user_id_to_tasks.sql
+          psql -h localhost -U postgres -d task_manager_test -f migrations/004_add_description_to_tasks.sql
         env:
           PGPASSWORD: 1234
 
